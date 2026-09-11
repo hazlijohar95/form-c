@@ -17,7 +17,7 @@ are synthetic.
 
 ## Entities
 
-| Entity | Why it exists (CJT lesson) |
+| Entity | Why it exists (practice lesson) |
 |---|---|
 | Engagement | one client × YA; carries SME profile, PBT, all schedules |
 | AddBackLine {section} | §3: every add-back individually sectioned (depreciation s.39(1)(b), audit fee, tax fee net of prior accrual) |
@@ -27,7 +27,7 @@ are synthetic.
 | NonQualifyingLine {reason} | renovation RM320,874 excluded with plant-vs-setting reason; feeds register tie |
 | Schedule3Override | prior-agent basis unknown (A1): external schedule with roll-forward that must foot |
 | Director {share, salary, loan} | Form C director schedule; loan column must match accounts |
-| RelatedAccount {12 balances} | s.140B: any month-end debit = advance; CJT verified 12/12 credit |
+| RelatedAccount {12 balances} | s.140B: any month-end debit = advance; verify 12/12 month-ends credit |
 | Cp204Bill {billNo, paidOn, inFY} | 12 bills, 11 in FY + 12th next Jan; ties to instalments paid |
 | Judgement {position, alternative, signedOff} | B1–B12 partner sign-off register |
 | OpenItem {whyBlocks, effect} | A1–A5 [TO OBTAIN]; unresolved items gate export |
@@ -36,11 +36,11 @@ are synthetic.
 
 ## Rules the schema enforces
 
-1. CI truncated to whole RM down; tax on truncated figure (CJT: 76,031.77 → 76,031 → 11,404.65).
+1. CI truncated to whole RM down; tax on truncated figure (e.g. 82,679.95 → 82,679).
 2. Disposal year: no IA/AA (Para 15); BC capped at allowances given (Para 37); BA otherwise.
 3. SVA: new assets only, QE ≤ RM2,000, non-SME cap RM20k (SME uncapped).
 4. Para 75: CA cannot create a loss; excess → unabsorbed CA, same source.
 5. s.107C(10): shortfall vs **30% of tax payable** (not 130% of estimate — the file's own draft got this wrong once).
-6. Unverified prior-YA credits are EXCLUDED from net cash (CJT's RM1,399.85 stale credit).
+6. Unverified prior-YA credits are EXCLUDED from net cash (stale MyTax credits must be written off, not relied on).
 7. Roll-forward must foot: RE b/f + additions − CA − disposed RE − RE c/f = 0.
 8. Register tie: qualifying QE + non-qualifying (+ expensed repairs) = register grand total.
