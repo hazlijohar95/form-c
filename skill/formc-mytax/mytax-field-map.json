@@ -1,0 +1,19 @@
+{
+  "form": "C",
+  "ya": 2025,
+  "portal": "https://mytax.hasil.gov.my",
+  "units": "export sen / 100 = MyTax RM",
+  "fields": [
+    { "export": "chargeableIncomeSen", "mytax": "Pendapatan bercukai / Chargeable income", "transform": "sen/100" },
+    { "export": "grossTaxSen", "mytax": "Cukai atas pendapatan bercukai / Tax on chargeable", "transform": "sen/100" },
+    { "export": "taxPayableSen", "mytax": "Cukai perlu dibayar / Tax payable", "transform": "sen/100" },
+    { "export": "smeQualifies", "mytax": "Kadar SME 15/17/24 vs rata 24% / SME bands vs flat", "transform": "verify bands match" },
+    { "export": "filingDeadline", "mytax": "Deadline check: 7 months from FYE close", "transform": "date" }
+  ],
+  "gates": [
+    "all checklist items done",
+    "user logged in manually",
+    "per-field read-back confirmed",
+    "never submit without explicit approval"
+  ]
+}
