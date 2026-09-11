@@ -322,7 +322,7 @@ describe("incentives", () => {
     // statutory business 90,125.20 → RA cap 63,087.64 → absorb 60,000
     expect(out.raAbsorbedSen).toBe(toSen(60_000));
     expect(out.raCfSen).toBe(0);
-    expect(out.statutorySen).toBe(toSen(90_125.2) - toSen(60_000) + toSen(0));
+    expect(out.statutorySen).toBe(toSen(90_125.2) - toSen(60_000));
   });
   it("ITA capped at 70% of statutory", () => {
     const inp = demoBase();
@@ -372,6 +372,7 @@ describe("IHC s.60F", () => {
     expect(out.grossTaxSen).toBe(Math.round(toSen(82_679) * 0.24));
     expect(out.lossUsedSen).toBe(0);
     expect(out.findings.join(" ")).toMatch(/60F/);
+    expect(out.smeQualifies).toBe(false); // taxed flat despite SME profile
   });
 });
 

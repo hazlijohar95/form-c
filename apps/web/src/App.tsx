@@ -48,7 +48,7 @@ export default function App(): JSX.Element {
   }
   function duplicate(): void {
     if (!eng) return;
-    const copy: Engagement = { ...eng, id: uid(), companyName: `${eng.companyName} (copy)` };
+    const copy: Engagement = { ...eng, id: uid(), companyName: `${eng.companyName} (copy)`, runs: [] };
     setList((prev) => [copy, ...prev]);
     setActiveId(copy.id);
   }
@@ -164,16 +164,26 @@ export default function App(): JSX.Element {
   );
 }
 
+function plusOneYear(iso: string): string {
+  const parts = iso.split("-");
+  if (parts.length !== 3 || parts[0] === undefined || parts[1] === undefined || parts[2] === undefined)
+    return iso;
+  return `${Number(parts[0]) + 1}-${parts[1]}-${parts[2]}`;
+}
+
 function MiniSummary(props: { eng: Engagement; onRollover: (next: Engagement) => void }): JSX.Element {
   const { result } = useComputation(props.eng);
   function rollover(): void {
     const e = props.eng;
+    const lossCfTotal = result.lossCfSen.reduce((a, l) => a + l.amountBfSen, 0);
     const next: Engagement = {
       ...blankEngagement(),
       id: uid(),
       companyName: e.companyName,
       regNo: e.regNo,
       ya: e.ya + 1,
+      fyeFrom: plusOneYear(e.fyeFrom),
+      fyeTo: plusOneYear(e.fyeTo),
       paidUpRM: e.paidUpRM,
       grossIncRM: e.grossIncRM,
       foreignPct: e.foreignPct,
@@ -186,9 +196,9 @@ function MiniSummary(props: { eng: Engagement; onRollover: (next: Engagement) =>
       priorYear: {
         ciRM: String(result.chargeableSen / 100),
         taxRM: String(result.grossTaxSen / 100),
-        caRM: "",
-        lossesBfRM: "",
-        unabsorbedCaBfRM: "",
+        caRM: String(result.totalCaSen / 100),
+        lossesBfRM: String(lossCfTotal / 100),
+        unabsorbedCaBfRM: String(result.unabsorbedCaCfSen / 100),
         reBfRM: String(result.residualCfSen / 100),
         agreed: false,
       },

@@ -63,7 +63,6 @@ export interface ComputationResult {
   itaAbsorbedSen: Sen;
   itaCfSen: Sen;
   groupReliefSen: Sen;
-  smeApplied: boolean;
 }
 
 export function computeChargeable(input: ComputationInput): ComputationResult {
@@ -89,9 +88,6 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     statutoryBusiness + input.balancingChargeSen - input.balancingAllowanceSen
   );
 
-  // s.60F IHC: per-source only — no offsets, no carry-forwards, flat rate.
-  // (handled via currentLoss / bfLossList / unabsorbedBf above)
-
   // Incentives absorb against business statutory (after CA/BC).
   const preIncentive = statutoryBusiness;
   const inc = applyIncentives(statutoryBusiness, {
@@ -100,7 +96,6 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     itaAllowanceSen: input.itaAllowanceSen,
     itaBfSen: input.itaBfSen,
     itaPct: input.itaPct,
-    pioneerExemptSen: 0,
   });
   statutoryBusiness = inc.afterSen;
 
@@ -170,7 +165,6 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     itaAbsorbedSen: inc.result.itaAbsorbedSen,
     itaCfSen: inc.result.itaCfSen,
     groupReliefSen: groupRelief,
-    smeApplied: input.isSme,
   };
 }
 

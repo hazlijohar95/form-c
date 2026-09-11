@@ -175,6 +175,11 @@ export function computeFormC(input: FormCInput): FormCResult {
     roll = scheduleRollForward(rows);
   }
 
+  const validatedGroupRelief = validateGroupRelief({
+    surrenderedSen: input.groupSurrenderedSen,
+    surrendererLossSen: input.groupSurrendererLossSen,
+    conditionsMet: input.groupConditionsMet,
+  });
   const comp: ComputationInput = {
     adjustedIncomeSen: adjusted,
     nonBusiness:
@@ -199,13 +204,9 @@ export function computeFormC(input: FormCInput): FormCResult {
     raBfSen: input.raBfSen,
     itaAllowanceSen: input.itaAllowanceSen,
     itaBfSen: input.itaBfSen,
-    itaPct: input.itaPct,
+    itaPct: input.itaPct === 100 ? 100 : 70,
     pioneerExemptSen: input.pioneerExemptSen,
-    groupSurrenderedSen: validateGroupRelief({
-      surrenderedSen: input.groupSurrenderedSen,
-      surrendererLossSen: input.groupSurrendererLossSen,
-      conditionsMet: input.groupConditionsMet,
-    }).allowedSen,
+    groupSurrenderedSen: validatedGroupRelief.allowedSen,
     isIhc: input.isIhc,
   };
   const out = computeChargeable(comp);
@@ -224,12 +225,8 @@ export function computeFormC(input: FormCInput): FormCResult {
     if (!r.deductible) findings.push(`WHT not remitted on "${w.description}" — added back s.39(2)`);
   }
   if (strip > 0) findings.push("s.140C earnings stripping disallowance applied");
-  const gr = validateGroupRelief({
-    surrenderedSen: input.groupSurrenderedSen,
-    surrendererLossSen: input.groupSurrendererLossSen,
-    conditionsMet: input.groupConditionsMet,
-  });
-  if (gr.note && input.groupSurrenderedSen > 0) findings.push(gr.note);
+  if (validatedGroupRelief.note && input.groupSurrenderedSen > 0)
+    findings.push(validatedGroupRelief.note);
   if (input.isIhc) findings.push("s.60F IHC: flat 24%, no offsets or carry-forwards");
   if (input.pioneerExemptSen > 0) findings.push("Pioneer exempt income excluded from chargeable");
 
@@ -258,7 +255,7 @@ export function computeFormC(input: FormCInput): FormCResult {
     residualCfSen: reCf,
     unabsorbedCaCfSen: out.unabsorbedCaCfSen,
     filingDeadline: filingDeadline7Months(input.fyeTo),
-    smeQualifies: sme.qualifies,
+    smeQualifies: sme.qualifies && !input.isIhc,
     smeFailed: sme.failedConditions,
     findings,
   };

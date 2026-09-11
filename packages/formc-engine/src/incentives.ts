@@ -10,8 +10,7 @@ export interface IncentiveInput {
   raBfSen: Sen;
   itaAllowanceSen: Sen;
   itaBfSen: Sen;
-  itaPct: number; // 70 or 100
-  pioneerExemptSen: Sen;
+  itaPct: number; // 70 or 100 (validated at the computeFormC boundary)
 }
 
 export interface IncentiveResult {
