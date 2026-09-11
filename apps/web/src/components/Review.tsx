@@ -1,8 +1,9 @@
 import { formatRM } from "@formc/engine";
 import { rmStrToSen } from "../lib/rm.js";
 import { updateById, removeById, uid } from "../lib/lists.js";
-import { computeEngagement } from "../lib/computation.js";
+import { computeEngagement, diagnoseRmInputs } from "../lib/computation.js";
 import { LineTable } from "./LineTable.js";
+import { RmInput } from "./RmInput.js";
 import type { Engagement, Judgement, OpenItem } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
@@ -99,14 +100,29 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
   const checks = verification(eng);
   const failed = checks.filter((c) => !c.pass).length;
+  const rmIssues = diagnoseRmInputs(eng);
   return (
     <div>
+      {rmIssues.length > 0 && (
+        <div className="card" role="alert" aria-label="Invalid amounts coerced to zero">
+          <h3>Input errors — {rmIssues.length} amount(s) treated as 0</h3>
+          <p className="hint">
+            These fields failed RM validation and are computed as zero. Fix the format
+            (RM 1,234.56) — the computation below does not include what you typed.
+          </p>
+          {rmIssues.map((m) => (
+            <div key={m} className="flag crit">
+              {m}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="card">
         <h3>Verification — {checks.length - failed}/{checks.length} pass</h3>
         {checks.map((c) => (
           <div key={c.name} className={c.pass ? "vrow pass" : "vrow fail"}>
             <span>{c.pass ? "✓" : "✗"} {c.name}</span>
-            <span className="num hint">{c.detail}</span>
+            <span className="detail">{c.detail}</span>
           </div>
         ))}
       </div>
@@ -119,10 +135,13 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
           onRemove={(id) => patch({ openItems: removeById(eng.openItems, id) })}
           onAdd={() => patch({ openItems: [...eng.openItems, { id: uid(), title: "", whyBlocks: "", effect: "", resolved: false }] })}
           addLabel="+ Blocking item"
+        describe={(o) => o.title || "blocking item"}
+        emptyTitle="No blocking items"
+        emptyHint="Everything obtainable is in. Add anything still [TO OBTAIN]."
           columns={[
-            { header: "Item", cell: (o, set) => (<input value={o.title} onChange={(e) => set({ title: e.target.value })} placeholder="Item" style={{ width: "100%" }} />) },
-            { header: "Why it blocks", cell: (o, set) => (<input value={o.whyBlocks} onChange={(e) => set({ whyBlocks: e.target.value })} placeholder="Why" style={{ width: "100%" }} />) },
-            { header: "Effect", cell: (o, set) => (<input value={o.effect} onChange={(e) => set({ effect: e.target.value })} placeholder="Effect" style={{ width: "100%" }} />) },
+            { header: "Item", cell: (o, set) => (<input value={o.title} onChange={(e) => set({ title: e.target.value })} aria-label="Item" placeholder="Item" style={{ width: "100%" }} />) },
+            { header: "Why it blocks", cell: (o, set) => (<input value={o.whyBlocks} onChange={(e) => set({ whyBlocks: e.target.value })} aria-label="Why" placeholder="Why" style={{ width: "100%" }} />) },
+            { header: "Effect", cell: (o, set) => (<input value={o.effect} onChange={(e) => set({ effect: e.target.value })} aria-label="Effect" placeholder="Effect" style={{ width: "100%" }} />) },
             { header: "Resolved", cell: (o, set) => (<label className="check"><input type="checkbox" checked={o.resolved} onChange={(e) => set({ resolved: e.target.checked })} /><span>Yes</span></label>) },
           ]}
         />
@@ -136,10 +155,13 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
           onRemove={(id) => patch({ judgements: removeById(eng.judgements, id) })}
           onAdd={() => patch({ judgements: [...eng.judgements, { id: uid(), title: "", position: "", alternative: "", signedOff: false }] })}
           addLabel="+ Judgement"
+        describe={(j) => j.title || "judgement"}
+        emptyTitle="No judgements recorded"
+        emptyHint="Record each position + alternative, then get partner sign-off."
           columns={[
-            { header: "Judgement", cell: (j, set) => (<input value={j.title} onChange={(e) => set({ title: e.target.value })} placeholder="Judgement" style={{ width: "100%" }} />) },
-            { header: "Position", cell: (j, set) => (<input value={j.position} onChange={(e) => set({ position: e.target.value })} placeholder="Position" style={{ width: "100%" }} />) },
-            { header: "Alternative", cell: (j, set) => (<input value={j.alternative} onChange={(e) => set({ alternative: e.target.value })} placeholder="Alternative" style={{ width: "100%" }} />) },
+            { header: "Judgement", cell: (j, set) => (<input value={j.title} onChange={(e) => set({ title: e.target.value })} aria-label="Judgement" placeholder="Judgement" style={{ width: "100%" }} />) },
+            { header: "Position", cell: (j, set) => (<input value={j.position} onChange={(e) => set({ position: e.target.value })} aria-label="Position" placeholder="Position" style={{ width: "100%" }} />) },
+            { header: "Alternative", cell: (j, set) => (<input value={j.alternative} onChange={(e) => set({ alternative: e.target.value })} aria-label="Alternative" placeholder="Alternative" style={{ width: "100%" }} />) },
             { header: "Signed", cell: (j, set) => (<label className="check"><input type="checkbox" checked={j.signedOff} onChange={(e) => set({ signedOff: e.target.checked })} /><span>Yes</span></label>) },
           ]}
         />
@@ -148,14 +170,14 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
       <div className="card">
         <h3>Prior-year filed position (YA{eng.ya - 1})</h3>
         <div className="row3">
-          <div><label className="f">Chargeable income</label><input className="num" value={eng.priorYear.ciRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, ciRM: e.target.value } })} /></div>
-          <div><label className="f">Tax</label><input className="num" value={eng.priorYear.taxRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, taxRM: e.target.value } })} /></div>
-          <div><label className="f">CA absorbed</label><input className="num" value={eng.priorYear.caRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, caRM: e.target.value } })} /></div>
+          <RmInput label="Chargeable income (RM)" value={eng.priorYear.ciRM} on={(v) => patch({ priorYear: { ...eng.priorYear, ciRM: v } })} placeholder="0.00" />
+          <RmInput label="Tax (RM)" value={eng.priorYear.taxRM} on={(v) => patch({ priorYear: { ...eng.priorYear, taxRM: v } })} placeholder="0.00" />
+          <RmInput label="CA absorbed (RM)" value={eng.priorYear.caRM} on={(v) => patch({ priorYear: { ...eng.priorYear, caRM: v } })} placeholder="0.00" />
         </div>
         <div className="row3">
-          <div><label className="f">Losses b/f</label><input className="num" value={eng.priorYear.lossesBfRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, lossesBfRM: e.target.value } })} /></div>
-          <div><label className="f">Unabsorbed CA b/f</label><input className="num" value={eng.priorYear.unabsorbedCaBfRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, unabsorbedCaBfRM: e.target.value } })} /></div>
-          <div><label className="f">RE at 1.1 (blank = not agreed)</label><input className="num" value={eng.priorYear.reBfRM} onChange={(e) => patch({ priorYear: { ...eng.priorYear, reBfRM: e.target.value } })} /></div>
+          <RmInput label="Losses b/f (RM)" value={eng.priorYear.lossesBfRM} on={(v) => patch({ priorYear: { ...eng.priorYear, lossesBfRM: v } })} placeholder="0.00" />
+          <RmInput label="Unabsorbed CA b/f (RM)" value={eng.priorYear.unabsorbedCaBfRM} on={(v) => patch({ priorYear: { ...eng.priorYear, unabsorbedCaBfRM: v } })} placeholder="0.00" />
+          <RmInput label="RE at 1.1 (RM)" hint="Blank = not agreed" value={eng.priorYear.reBfRM} on={(v) => patch({ priorYear: { ...eng.priorYear, reBfRM: v } })} placeholder="0.00" />
         </div>
         <label className="check"><input type="checkbox" checked={eng.priorYear.agreed} onChange={(e) => patch({ priorYear: { ...eng.priorYear, agreed: e.target.checked } })} /><span>Agreed to filed return</span></label>
       </div>

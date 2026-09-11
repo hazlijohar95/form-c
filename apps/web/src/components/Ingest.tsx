@@ -45,13 +45,16 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
         Paste TB lines as <span className="mono">Account name … amount</span>, one per line.
         Nothing posts until you assign each line. Parentheses = credit.
       </p>
+      <label className="f" htmlFor="tb-paste">Trial balance lines</label>
       <textarea
+        id="tb-paste"
         rows={8}
         value={eng.ingestText}
         onChange={(e) => patch({ ingestText: e.target.value })}
         placeholder={"Depreciation 50,000.00\nEntertainment 20,000.00\nSales (1,200,000.00)"}
       />
       {proposals.length > 0 && (
+        <div className="tscroll">
         <table className="w" style={{ marginTop: 10 }}>
           <thead>
             <tr>
@@ -74,7 +77,7 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
                     {state === "posted" ? (
                       <span className="ok">Posted ✓</span>
                     ) : (
-                      <select value={state} onChange={(e) => setAssign((prev) => ({ ...prev, [p.id]: e.target.value }))}>
+                      <select aria-label="Assign TB line" value={state} onChange={(e) => setAssign((prev) => ({ ...prev, [p.id]: e.target.value }))}>
                         <option value="ignore">Ignore / dealt with</option>
                         <option value="credit">Non-taxable credit</option>
                         {SECTIONS.map((s) => (
@@ -97,6 +100,7 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

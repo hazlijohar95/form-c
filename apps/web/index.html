@@ -1,8 +1,22 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Form C Studio — Sdn Bhd tax computation (ITA 1967), YA2025. Adjusted income, Schedule 3, SME bands, MyTax export." />
+    <meta name="theme-color" content="#101010" />
+    <script>
+      // FOUC-free theme: stored choice wins, default dark, system follows OS.
+      try {
+        var m = localStorage.getItem("formc-theme") || "dark";
+        var r = m === "light" ? "light" : m === "dark" ? "dark"
+          : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        if (r === "dark") document.documentElement.classList.add("dark");
+        document.documentElement.style.colorScheme = r;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", r === "dark" ? "#101010" : "#f6f6f6");
+      } catch (e) { document.documentElement.classList.add("dark"); }
+    </script>
     <title>Form C Studio — Sdn Bhd Tax Computation YA2025</title>
   </head>
   <body>

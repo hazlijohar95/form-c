@@ -1,44 +1,108 @@
+import { useId } from "react";
 import { useForm } from "@tanstack/react-form";
 
-function rmError(v: string): string | undefined {
+export type RmKind = "rm" | "signed" | "pct" | "int" | "year";
+
+const KIND_HINT: Record<RmKind, string> = {
+  rm: "Use RM format 1,234.56",
+  signed: "Negative allowed — e.g. -12,000.50 debit",
+  pct: "0–100, e.g. 12.5",
+  int: "Whole number, e.g. 12",
+  year: "Four-digit year, e.g. 2024",
+};
+
+/** Shared amount validator (Error at Seam): blank is untouched (valid),
+ *  anything else must match the kind. Mirrors lib/rm parseRm for "rm". */
+export function validateAmount(kind: RmKind, v: string): string | undefined {
   const s = String(v).replace(/,/g, "").trim();
   if (s === "") return undefined;
-  return /^\d+(\.\d{1,2})?$/.test(s) ? undefined : "RM 1,234.56";
+  switch (kind) {
+    case "rm":
+      return /^\d+(\.\d{1,2})?$/.test(s) ? undefined : KIND_HINT.rm;
+    case "signed":
+      return /^-?\d+(\.\d{1,2})?$/.test(s) ? undefined : KIND_HINT.signed;
+    case "pct": {
+      if (!/^\d+(\.\d+)?$/.test(s)) return KIND_HINT.pct;
+      const n = Number(s);
+      return n >= 0 && n <= 100 ? undefined : "Must be 0–100";
+    }
+    case "int":
+      return /^\d+$/.test(s) ? undefined : KIND_HINT.int;
+    case "year": {
+      if (!/^\d{4}$/.test(s)) return KIND_HINT.year;
+      const n = Number(s);
+      return n >= 1900 && n <= 2100 ? undefined : "Year 1900–2100";
+    }
+  }
 }
 
-// TanStack Form RM input at the string→sen Seam. Parent stays source
-// of truth — validation displays inline, change patches upward.
+export function rmError(v: string): string | undefined {
+  return validateAmount("rm", v);
+}
+
+// TanStack Form validated input at the string→sen seam. Parent stays
+// source of truth — validation displays inline, change patches upward.
+// Accessible: label association (sr-only in compact table cells),
+// aria-invalid/describedby, role=alert error.
 export function RmInput(props: {
   value: string;
   on: (v: string) => void;
+  label?: string;
   placeholder?: string;
   disabled?: boolean;
+  hint?: string;
+  kind?: RmKind;
+  /** Hide the visual label (header/row context carries meaning); keeps an sr-only label. */
+  compact?: boolean;
 }): JSX.Element {
+  const kind = props.kind ?? "rm";
   const form = useForm({ defaultValues: { v: props.value } });
+  const id = useId();
+  const errId = `${id}-err`;
+  const hintId = `${id}-hint`;
+  const label = props.label ?? "RM";
   return (
     <form.Field
       name="v"
-      validators={{ onChange: ({ value }) => rmError(String(value)) }}
+      validators={{ onChange: ({ value }) => validateAmount(kind, String(value)) }}
     >
-      {(field) => (
-        <div style={{ flex: 1 }}>
-          <input
-            className="num"
-            value={props.value}
-            placeholder={props.placeholder}
-            disabled={props.disabled}
-            onChange={(e) => {
-              field.handleChange(e.target.value);
-              props.on(e.target.value);
-            }}
-            onBlur={field.handleBlur}
-            style={{ width: "100%" }}
-          />
-          {field.state.meta.errors.length > 0 && (
-            <div className="hint">{String(field.state.meta.errors[0])}</div>
-          )}
-        </div>
-      )}
+      {(field) => {
+        const err = field.state.meta.errors[0];
+        return (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label className={props.compact ? "f sr-only" : "f"} htmlFor={id}>
+              {label}
+            </label>
+            <input
+              id={id}
+              className="num"
+              value={props.value}
+              placeholder={props.placeholder}
+              disabled={props.disabled}
+              inputMode={kind === "int" || kind === "year" ? "numeric" : "decimal"}
+              autoComplete="off"
+              aria-invalid={err ? true : undefined}
+              aria-describedby={err ? errId : props.hint ? hintId : undefined}
+              onChange={(e) => {
+                field.handleChange(e.target.value);
+                props.on(e.target.value);
+              }}
+              onBlur={field.handleBlur}
+              style={{ width: "100%" }}
+            />
+            {props.hint && !err && (
+              <div className="field-hint" id={hintId}>
+                {props.hint}
+              </div>
+            )}
+            {err ? (
+              <div className="field-err" id={errId} role="alert">
+                {String(err)}
+              </div>
+            ) : null}
+          </div>
+        );
+      }}
     </form.Field>
   );
 }

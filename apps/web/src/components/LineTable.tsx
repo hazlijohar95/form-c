@@ -19,6 +19,7 @@ export interface LineColumn<T extends LineRow> {
 
 // Shared TanStack Table shell for all linerow editors. Callers declare
 // columns; add/remove + table chrome live here.
+// Accessible: labelled remove buttons, scroll container, guided empty state.
 export function LineTable<T extends LineRow>(props: {
   data: T[];
   columns: LineColumn<T>[];
@@ -26,8 +27,14 @@ export function LineTable<T extends LineRow>(props: {
   onRemove: (id: string) => void;
   onAdd: () => void;
   addLabel: string;
+  describe?: (row: T) => string;
+  emptyTitle?: string;
+  emptyHint?: string;
 }): JSX.Element {
   const { data, columns, onUpdate, onRemove, onAdd, addLabel } = props;
+  const describe = props.describe ?? (() => "row");
+  const emptyTitle = props.emptyTitle ?? "Nothing here yet";
+  const emptyHint = props.emptyHint ?? "Add the first line to get started.";
   const cols = useMemo(
     () => [
       ...columns.map((c, i) =>
@@ -42,53 +49,65 @@ export function LineTable<T extends LineRow>(props: {
       ),
       helper.display({
         id: "actions",
-        header: "",
-        cell: (ctx) => (
-          <button
-            className="btn ghost"
-            onClick={() => onRemove((ctx.row.original as T).id)}
-          >
-            ×
-          </button>
-        ),
+        header: "Remove",
+        cell: (ctx) => {
+          const row = ctx.row.original as T;
+          return (
+            <button
+              type="button"
+              className="btn btn-xs ghost danger"
+              onClick={() => onRemove(row.id)}
+              aria-label={`Remove ${describe(row)}`}
+              title={`Remove ${describe(row)}`}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          );
+        },
       }),
     ],
-    [columns, onUpdate, onRemove]
+    [columns, onUpdate, onRemove, props]
   );
   const table = useReactTable({ data, columns: cols, getCoreRowModel: getCoreRowModel() });
   if (data.length === 0)
     return (
-      <div>
-        <button className="btn" onClick={onAdd}>
-          {addLabel}
-        </button>
+      <div className="empty">
+        <div className="t">{emptyTitle}</div>
+        <div className="d">{emptyHint}</div>
+        <div>
+          <button type="button" className="btn" onClick={onAdd}>
+            {addLabel}
+          </button>
+        </div>
       </div>
     );
   return (
     <div>
-      <table className="w">
-        <thead>
-          {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id}>
-              {hg.headers.map((h) => (
-                <th key={h.id} style={{ textAlign: "left" }}>
-                  {flexRender(h.column.columnDef.header, h.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button className="btn" onClick={onAdd} style={{ marginTop: 4 }}>
+      <div className="tscroll">
+        <table className="w">
+          <thead>
+            {table.getHeaderGroups().map((hg) => (
+              <tr key={hg.id}>
+                {hg.headers.map((h) => (
+                  <th key={h.id} scope="col">
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button type="button" className="btn" onClick={onAdd} style={{ marginTop: 8 }}>
         {addLabel}
       </button>
     </div>

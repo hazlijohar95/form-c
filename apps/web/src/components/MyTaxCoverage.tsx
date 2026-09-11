@@ -13,7 +13,7 @@ function Text(props: {
 }): JSX.Element {
   return (
     <label className="fld">
-      <span>{props.label}</span>
+      <span className="fl">{props.label}</span>
       <input value={props.value} placeholder={props.ph ?? ""} onChange={(e) => props.on(e.target.value)} />
     </label>
   );
@@ -22,7 +22,7 @@ function Text(props: {
 function Yn(props: { label: string; value: string; on: (v: string) => void }): JSX.Element {
   return (
     <label className="fld">
-      <span>{props.label}</span>
+      <span className="fl">{props.label}</span>
       <select value={props.value} onChange={(e) => props.on(e.target.value)}>
         <option value="">-- Sila Pilih --</option>
         <option value="1">Ya</option>
@@ -45,7 +45,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
         Kiri: apa portal minta (susunan sebenar). Kanan: status liputan dari engagement ini.
         Draf boleh simpan; Hantar + tandatangan perlukan kelulusan manusia. Band {result.smeQualifies ? "15/17/24" : "24"} enjin.
       </p>
-      <div className="grid2">
+      <div className="fld-grid">
         <div>
           <h4>1 · Profil — tarikh & status</h4>
           <Text label="TIN (C …)" value={m.tin} ph="C 60490708070" on={(v) => set({ tin: v })} />
@@ -56,7 +56,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
           <Text label="Asas Hingga" value={m.basisTo} ph="31/12/2025" on={(v) => set({ basisTo: v })} />
           <Yn label="Diperbadankan MY" value={m.incorpMY} on={(v) => set({ incorpMY: v as "1" | "2" | "" })} />
           <Text label="Mastautin" value={m.residentCountry} ph="MYS" on={(v) => set({ residentCountry: v })} />
-          <label className="fld"><span>Status</span>
+          <label className="fld"><span className="fl">Status</span>
             <select value={m.businessStatus} onChange={(e) => set({ businessStatus: e.target.value as typeof m.businessStatus })}>
               <option value="">-- Sila Pilih --</option>
               <option value="1">Beroperasi</option>
@@ -71,7 +71,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
           <Yn label="Terkawal" value={m.controlledCo} on={(v) => set({ controlledCo: v as "1" | "2" | "" })} />
           <Yn label="Asing tanpa syer" value={m.foreignNoShareCo} on={(v) => set({ foreignNoShareCo: v as "1" | "2" | "" })} />
           <Yn label="SME 2B/2C" value={m.smePara2B2C} on={(v) => set({ smePara2B2C: v as "1" | "2" | "" })} />
-          <label className="fld"><span>Syer 44(5A)</span>
+          <label className="fld"><span className="fl">Syer 44(5A)</span>
             <select value={m.shareChange445A} onChange={(e) => set({ shareChange445A: e.target.value as typeof m.shareChange445A })}>
               <option value="">-- Sila Pilih --</option>
               <option value="1">Ya</option>
@@ -79,7 +79,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
               <option value="3">Tidak Berkenaan</option>
             </select>
           </label>
-          <label className="fld"><span>RKT/RKS</span>
+          <label className="fld"><span className="fl">RKT/RKS</span>
             <select value={m.groupClaim} onChange={(e) => set({ groupClaim: e.target.value as typeof m.groupClaim })}>
               <option value="">-- Sila Pilih --</option>
               <option value="RKT">Menuntut</option>
@@ -111,6 +111,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
         </div>
       </div>
       <h4>Liputan langkah</h4>
+      <div className="tscroll">
       <table className="w">
         <thead><tr><th>#</th><th>Portal</th><th>Status</th><th>Kekurangan</th></tr></thead>
         <tbody>
@@ -124,6 +125,7 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
           ))}
         </tbody>
       </table>
+      </div>
       <h4>Gate hantar</h4>
       <ul>
         {submitBlockers.map((b, i) => (<li key={i} className="hint">{b}</li>))}

@@ -1,64 +1,19 @@
-import { doubleTotal, earningsStripping, formatRM } from "@formc/engine";
+import { earningsStripping, formatRM } from "@formc/engine";
 import { CHECKLIST } from "../lib/types.js";
 import { rmStrToSen } from "../lib/rm.js";
+import { buildMytaxExport, doubleLineTotal } from "../lib/myexport.js";
 import { deemed140B, useComputation, whtSectionList } from "../lib/computation.js";
 import type { Engagement, RunRecord } from "../lib/types.js";
 
 export { whtSectionList };
 
-export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void }): JSX.Element {
+export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void; notify: (t: { title: string; detail?: string; err?: boolean }) => void }): JSX.Element {
   const { eng } = props;
   const { result, assetRows } = useComputation(eng);
   const deemed = deemed140B(eng);
   const stripSen = earningsStripping(rmStrToSen(eng.relatedInterestRM), rmStrToSen(eng.taxEbitdaRM));
   const doneCount = eng.checks.filter(Boolean).length;
-  const exportJson = JSON.stringify(
-    {
-      form: "C",
-      ya: eng.ya,
-      company: eng.companyName,
-      regNo: eng.regNo,
-      fyeFrom: eng.fyeFrom,
-      fyeTo: eng.fyeTo,
-      smeQualifies: result.smeQualifies,
-      filingDeadline: result.filingDeadline,
-      statutoryBeforeIncentivesSen: result.statutoryBeforeIncentivesSen,
-      nonBusiness: eng.nonBusiness.map((l) => ({
-        label: l.label,
-        amountSen: rmStrToSen(l.amountRM),
-      })),
-      chargeableIncomeSen: result.chargeableSen,
-      grossTaxSen: result.grossTaxSen,
-      cp204PaidSen: rmStrToSen(eng.cp204PaidRM),
-      taxPayableSen: result.taxPayableSen,
-      netProfitSen: rmStrToSen(eng.netProfitRM),
-      addBacks: eng.addBacks.map((l) => ({
-        description: l.description,
-        amountSen: rmStrToSen(l.amountRM),
-        section: l.section,
-      })),
-      credits: eng.credits.map((l) => ({
-        description: l.description,
-        amountSen: rmStrToSen(l.amountRM),
-        basis: l.basis,
-      })),
-      totalCaSen: result.totalCaSen,
-      balancingChargeSen: result.balancingChargeSen,
-      residualCfSen: result.residualCfSen,
-      doubleDeductions: eng.doubleDeductions.map((l) => ({
-        description: l.description,
-        amountSen: rmStrToSen(l.amountRM),
-        code: l.code,
-        authority: l.authority,
-      })),
-      directors: eng.directors,
-      shareholders: eng.shareholders,
-      declarations: eng.declarations,
-      checklist: CHECKLIST.map((c, i) => ({ item: c, done: eng.checks[i] })),
-    },
-    null,
-    2
-  );
+  const exportJson = buildMytaxExport(eng);
 
   return (
     <div className="report">
@@ -74,29 +29,43 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
             </div>
           </div>
           <div className="toolbar no-print">
-            <button className="btn" onClick={() => window.print()}>
+            <button type="button" className="btn btn-xs" onClick={() => window.print()}>
               Print
             </button>
-            <button className="btn" onClick={() => props.onSnapshot({ at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen })}>
+            <button type="button" className="btn btn-xs" onClick={() => props.onSnapshot({ at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen })}>
               Snapshot run
             </button>
             <button
-              className="btn primary"
+              type="button"
+              className="btn btn-xs primary"
               disabled={doneCount < CHECKLIST.length}
-              onClick={() => void navigator.clipboard.writeText(exportJson)}
+              title={doneCount < CHECKLIST.length ? `Complete ${CHECKLIST.length - doneCount} checklist item(s) to unlock export` : "Copy MyTax JSON to clipboard"}
+              aria-describedby="export-hint"
+              onClick={() => {
+                void navigator.clipboard.writeText(exportJson).then(
+                  () => props.notify({ title: "MyTax JSON copied", detail: "Paste into your export record." }),
+                  () => props.notify({ title: "Copy failed", detail: "Select the JSON below and copy manually.", err: true })
+                );
+              }}
             >
               Copy MyTax JSON
             </button>
           </div>
+          {doneCount < CHECKLIST.length && (
+            <p className="hint" id="export-hint">
+              Export unlocks at {CHECKLIST.length}/{CHECKLIST.length} checklist — {CHECKLIST.length - doneCount} remaining.
+            </p>
+          )}
         </div>
 
         {result.findings.map((f) => (
-          <div key={f} className="flag crit">
+          <div key={f} className="flag crit" role="alert">
             {f}
           </div>
         ))}
 
         <h3>A · Adjusted income</h3>
+        <div className="tscroll">
         <table className="w">
           <tbody>
             <tr>
@@ -141,7 +110,7 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
                   Less: {l.description} (double){" "}
                   <span className="hint">[{l.code ? `D1 ${l.code}, ` : ""}{l.authority || "s.34"}{l.capRM ? `, cap RM${l.capRM}` : ""}]</span>
                 </td>
-                <td className="rm">({formatRM(doubleTotal([{ description: l.description, amountSen: rmStrToSen(l.amountRM), authority: l.authority, capSen: l.capRM === "" ? undefined : rmStrToSen(l.capRM) }]))})</td>
+                <td className="rm">({formatRM(doubleLineTotal(l))})</td>
               </tr>
             ))}
             <tr>
@@ -154,6 +123,7 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
             </tr>
           </tbody>
         </table>
+        </div>
 
         <h3>C · Capital allowances (Sch 3)</h3>
         {eng.schedule3.enabled ? (
@@ -164,6 +134,7 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
             <OverrideTable eng={eng} />
           </div>
         ) : (
+        <div className="tscroll">
         <table className="w">
           <thead>
             <tr>
@@ -213,9 +184,11 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
             </tr>
           </tbody>
         </table>
+        </div>
         )}
 
         <h3>D · Statutory → chargeable → payable</h3>
+        <div className="tscroll">
         <table className="w">
           <tbody>
             <tr>
@@ -280,6 +253,7 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
             </tr>
           </tbody>
         </table>
+        </div>
 
         <h3>Checklist — {doneCount}/{CHECKLIST.length}</h3>
         {CHECKLIST.map((c, i) => (

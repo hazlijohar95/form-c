@@ -5,30 +5,21 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useForm } from "@tanstack/react-form";
+import { RmInput } from "./RmInput.js";
 import { CATEGORIES } from "../lib/types.js";
 import { uid, removeById, updateById } from "../lib/lists.js";
 import type { AssetLine, Engagement } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
-function rmError(v: string): string | undefined {
-  const s = String(v).replace(/,/g, "").trim();
-  if (s === "") return undefined;
-  return /^\d+(\.\d{1,2})?$/.test(s) ? undefined : "RM 1,234.56";
-}
-
 const helper = createColumnHelper<AssetLine>();
 
-// Asset schedule migrated to TanStack Table (rows) + TanStack Form
-// (RM validation at the input Seam). Parent Engagement stays source
-// of truth — form fields patch upward on change.
+// Asset schedule: TanStack Table rows + validated RmInput cells.
+// Parent Engagement stays source of truth — fields patch upward.
 export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.Element {
   const { assets, patch } = props;
   const set = (id: string, p: Partial<AssetLine>): void =>
     patch({ assets: updateById(assets, id, p) });
-
-  const form = useForm({ defaultValues: { assets } });
 
   const columns = useMemo(
     () => [
@@ -38,6 +29,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
           <input
             value={ctx.getValue()}
             onChange={(e) => set(ctx.row.original.id, { description: e.target.value })}
+            aria-label="Asset description"
             placeholder="Asset description"
             style={{ width: "100%" }}
           />
@@ -47,6 +39,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
         header: "Category",
         cell: (ctx) => (
           <select
+            aria-label={`Category for ${ctx.row.original.description || "asset"}`}
             value={ctx.getValue()}
             onChange={(e) =>
               set(ctx.row.original.id, { category: e.target.value as AssetLine["category"] })
@@ -63,30 +56,15 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
       helper.accessor("costRM", {
         header: "Cost / QE (RM)",
         cell: (ctx) => {
-          const idx = ctx.row.index;
           const id = ctx.row.original.id;
           return (
-            <form.Field
-              name={`assets[${idx}].costRM`}
-              validators={{ onChange: ({ value }) => rmError(String(value)) }}
-            >
-              {(field) => (
-                <div>
-                  <input
-                    className="num"
-                    value={ctx.getValue()}
-                    onChange={(e) => {
-                      field.handleChange(e.target.value);
-                      set(id, { costRM: e.target.value });
-                    }}
-                    onBlur={field.handleBlur}
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <div className="hint">{String(field.state.meta.errors[0])}</div>
-                  )}
-                </div>
-              )}
-            </form.Field>
+            <RmInput
+              label={`Cost / QE for ${ctx.row.original.description || "asset"} (RM)`}
+              compact
+              value={ctx.getValue()}
+              placeholder="0.00"
+              on={(v) => set(id, { costRM: v })}
+            />
           );
         },
       }),
@@ -95,10 +73,12 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
         header: "",
         cell: (ctx) => (
           <button
-            className="btn ghost"
+            type="button"
+            className="btn btn-xs ghost danger"
             onClick={() => patch({ assets: removeById(assets, ctx.row.original.id) })}
+            aria-label={`Remove asset ${ctx.row.original.description || "(unnamed)"}`}
           >
-            ×
+            <span aria-hidden="true">×</span>
           </button>
         ),
       }),
@@ -111,6 +91,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
 
   return (
     <div>
+      <div className="tscroll">
       <table className="w">
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -133,54 +114,49 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
           ))}
         </tbody>
       </table>
+      </div>
       {assets.map((a) => (
         <div key={a.id} className="assetbox">
           <div className="row3">
-            <div>
-              <label className="f">Allowances to prior YA (RM)</label>
-              <input
-                className="num"
-                value={a.allowancesBfRM}
-                onChange={(e) => set(a.id, { allowancesBfRM: e.target.value })}
-                disabled={a.isNew}
-              />
-            </div>
-            <div>
-              <label className="f">Months in use (blank=12)</label>
-              <input
-                className="num"
-                value={a.monthsInUse}
-                onChange={(e) => set(a.id, { monthsInUse: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="f">Disposal price (blank=held)</label>
-              <input
-                className="num"
-                value={a.disposalPriceRM}
-                onChange={(e) => set(a.id, { disposalPriceRM: e.target.value })}
-              />
-            </div>
+            <RmInput
+              label={`Allowances to prior YA (RM)${a.isNew ? " — disabled for new assets" : ""}`}
+              value={a.allowancesBfRM}
+              on={(v) => set(a.id, { allowancesBfRM: v })}
+              placeholder="0.00"
+              disabled={a.isNew}
+            />
+            <RmInput
+              label="Months in use"
+              hint="Blank = 12"
+              kind="int"
+              value={a.monthsInUse}
+              on={(v) => set(a.id, { monthsInUse: v })}
+              placeholder="12"
+            />
+            <RmInput
+              label="Disposal price (RM)"
+              hint="Blank = still held"
+              value={a.disposalPriceRM}
+              on={(v) => set(a.id, { disposalPriceRM: v })}
+              placeholder="0.00"
+            />
           </div>
           <div className="row3">
-            <div>
-              <label className="f">Motor total cost (RM)</label>
-              <input
-                className="num"
-                value={a.motorTotalCostRM}
-                onChange={(e) => set(a.id, { motorTotalCostRM: e.target.value })}
-                disabled={!a.isMotorNonCommercial}
-              />
-            </div>
-            <div>
-              <label className="f">Qualifying % (Para 66)</label>
-              <input
-                className="num"
-                value={a.qualifyingPct}
-                onChange={(e) => set(a.id, { qualifyingPct: e.target.value })}
-                disabled={a.category !== "iba-3"}
-              />
-            </div>
+            <RmInput
+              label={`Motor total cost (RM)${!a.isMotorNonCommercial ? " — enable “Non-commercial motor” to edit" : ""}`}
+              value={a.motorTotalCostRM}
+              on={(v) => set(a.id, { motorTotalCostRM: v })}
+              placeholder="0.00"
+              disabled={!a.isMotorNonCommercial}
+            />
+            <RmInput
+              label={`Qualifying % (Para 66)${a.category !== "iba-3" ? " — IBA buildings only" : ""}`}
+              kind="pct"
+              value={a.qualifyingPct}
+              on={(v) => set(a.id, { qualifyingPct: v })}
+              placeholder="100"
+              disabled={a.category !== "iba-3"}
+            />
           </div>
           <div className="checkcol">
             <label className="check">
@@ -218,22 +194,18 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
           </div>
           {a.isHirePurchase && (
             <div className="row2">
-              <div>
-                <label className="f">HP capital paid THIS period (RM)</label>
-                <input
-                  className="num"
-                  value={a.hpPaidPeriodRM}
-                  onChange={(e) => set(a.id, { hpPaidPeriodRM: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="f">HP cumulative capital paid (RM)</label>
-                <input
-                  className="num"
-                  value={a.hpPaidTotalRM}
-                  onChange={(e) => set(a.id, { hpPaidTotalRM: e.target.value })}
-                />
-              </div>
+              <RmInput
+                label="HP capital paid THIS period (RM)"
+                value={a.hpPaidPeriodRM}
+                on={(v) => set(a.id, { hpPaidPeriodRM: v })}
+                placeholder="0.00"
+              />
+              <RmInput
+                label="HP cumulative capital paid (RM)"
+                value={a.hpPaidTotalRM}
+                on={(v) => set(a.id, { hpPaidTotalRM: v })}
+                placeholder="0.00"
+              />
             </div>
           )}
         </div>
