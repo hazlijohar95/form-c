@@ -4,15 +4,21 @@
 
 - `packages/formc-engine` — pure TypeScript, zero deps. Money in integer sen.
   Rates versioned per YA from `tax-agent/skill/data/rates.json` lineage.
-- `apps/web` — Vite 6 + React 18 + TS strict. Dark-first UI ported from
-  OpenCode `packages/ui` design tokens (`theme.css`, `colors.css`):
+- `apps/web` — Vite 6 + React 18 + TS strict, TanStack Router (URL tabs),
+  Query (server state), Table + Form (editors with RM validation). Dark-first
+  UI ported from OpenCode `packages/ui` design tokens (`theme.css`, `colors.css`):
   14px dense type, mono tabular numerals, bordered surfaces, cobalt/ember/apple
   signal colors. Visual parity only — runtime stays React for maintainability
   (OpenCode ships Solid/Kobalte; porting that runtime would niche the hiring pool
   for zero user-visible gain).
 - `skill/formc-mytax` — agent skill mapping export JSON → MyTax Form C fields.
   Human-in-loop: agent fills, human submits.
-- Deploy: Docker + Nginx or Cloudflare Pages static. No Vercel.
+- `workers/api` — Cloudflare Worker, D1-backed engagement CRUD
+  (`GET/PUT/DELETE /api/engagements[/:id]`, open `/api/health`). CORS
+  allowlist + bearer-token auth (`API_TOKEN` secret); timing-safe compare,
+  1MB body cap, `no-store`. See `workers/api/README.md`.
+- Deploy: Cloudflare Pages (`formc-studio`) + Worker (`formc-api`) + D1
+  (`formc-engagements`). No Vercel. No Docker.
 
 ## AI framework decision
 

@@ -9,27 +9,36 @@ export interface ProposedLine {
 
 export function parseTrialBalance(text: string): ProposedLine[] {
   const out: ProposedLine[] = [];
-  let n = 0;
   for (const raw of text.split("\n")) {
     const line = raw.trim();
     if (!line) continue;
     // Match trailing number: "Depreciation 50,000.00" or "Sales (1,200,000)"
-    const m = line.match(/^(.*?)\s+(\(?[\d,]+\.\d{2})\)?\s*$/);
+    const m = line.match(/^(.*?)\s+(\(?[\d,]+(?:\.\d{1,2})?)\)?\s*$/);
     if (!m || !m[1] || !m[2]) continue;
     const label = m[1].trim();
     if (label.length < 2) continue;
     const negative = line.includes("(") && line.includes(")");
-    const amount = Number(m[2].replace(/,/g, ""));
-    if (!Number.isFinite(amount) || amount <= 0) continue;
-    n += 1;
+    const amountSen = decimalToSen(m[2]);
+    if (amountSen <= 0) continue;
     out.push({
-      id: `tb-${n}`,
+      // Stable across re-parses so "posted" state in Ingest.tsx survives edits.
+      id: `tb:${label}:${m[2]}:${negative ? "c" : "d"}`,
       label,
-      amountSen: Math.round(amount * 100),
+      amountSen,
       kind: negative ? "credit" : "debit",
     });
   }
   return out;
+}
+
+function decimalToSen(raw: string): number {
+  const s = raw.replace(/,/g, "").trim();
+  const m = s.match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return 0;
+  const rm = Number(m[1]);
+  const cents = (m[2] ?? "").padEnd(2, "0");
+  if (!Number.isSafeInteger(rm)) return 0;
+  return rm * 100 + Number(cents);
 }
 
 // Keyword hints for likely tax treatment — hints only, reviewer decides.

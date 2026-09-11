@@ -4,7 +4,7 @@ import { computeAsset } from "../src/capitalAllowances.js";
 import { cp204Penalty } from "../src/chargeable.js";
 import { computeFormC } from "../src/index.js";
 import { assessWht, deemedInterest140B, earningsStripping } from "../src/index.js";
-import { checkSme, smeBands } from "../src/rates.js";
+import { checkSme, smeBands } from "../src/sme.js";
 import { taxOnBands, toSen } from "../src/money.js";
 
 // ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ describe("Sch 3 straight-line (per-asset model)", () => {
         isHirePurchase: false, isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.iaSen).toBe(toSen(2_000));
     expect(r.aaSen).toBe(toSen(1_400)); // 14% of QE, not of residual
@@ -130,7 +130,7 @@ describe("Sch 3 straight-line (per-asset model)", () => {
         isHirePurchase: false, isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.iaSen).toBe(0);
     expect(r.aaSen).toBe(toSen(500)); // capped at residual, not 1,400
@@ -145,7 +145,7 @@ describe("Sch 3 straight-line (per-asset model)", () => {
         ownedAtYearEnd: false, inUseAtYearEnd: false,
         disposalPriceSen: toSen(7_700),
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.aaSen).toBe(0);
     expect(r.balancingChargeSen).toBe(toSen(6_500)); // 7,700−1,200 capped at 10,800
@@ -159,7 +159,7 @@ describe("Sch 3 straight-line (per-asset model)", () => {
         isHirePurchase: false, isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.svaSen).toBe(0);
     expect(r.notes.join(" ")).toMatch(/Para 19A requires new asset/);
@@ -237,7 +237,7 @@ describe("hire purchase (Para 46)", () => {
         isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.iaSen).toBe(toSen(6_000)); // 20% of 30,000 paid — not of 100,000
     expect(r.aaSen).toBe(toSen(4_200)); // 14% of 30,000 paid-to-date
@@ -252,7 +252,7 @@ describe("hire purchase (Para 46)", () => {
         isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.totalCaSen).toBe(0);
     expect(r.notes.join(" ")).toMatch(/needs capital paid/);
@@ -385,7 +385,7 @@ describe("industrial building portion (Para 66)", () => {
         isHirePurchase: false, isMotorNonCommercial: false,
         ownedAtYearEnd: true, inUseAtYearEnd: true, qualifyingPct: 60,
       },
-      true, 0
+      { isSme: true, svaCapRemainingSen: null }
     );
     expect(r.iaSen).toBe(toSen(60_000)); // 10% of 600,000
     expect(r.aaSen).toBe(toSen(18_000)); // 3% of 600,000

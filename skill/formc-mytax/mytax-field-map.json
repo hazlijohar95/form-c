@@ -1,42 +1,55 @@
 {
   "form": "C",
   "portal": "https://mytax.hasil.gov.my",
+  "entry": "MyTax dashboard > e-Filing > e-Borang > e-C year > confirm modal > eFilingSYKTMyTax.aspx Teruskan (popup) > ef.hasil.gov.my/eC2025/",
   "units": "export sen / 100 = MyTax RM; chargeable already whole-RM truncated",
   "screens": [
-    { "screen": "Maklumat syarikat", "fields": [
-      { "export": "company/regNo/ya/fyeFrom/fyeTo", "mytax": "Company profile + basis period" },
-      { "export": "smeQualifies", "mytax": "SME bands 15/17/24 vs flat 24 — must match" }
+    { "screen": "1 Profil (MakAsas) /eC2025/MakAsas", "fields": [
+      { "export": "company/regNo/ya/fyeFrom/fyeTo + mytax.operasiDate/acctFrom/acctTo/basisFrom/basisTo", "mytax": "Tarikh mula beroperasi + Tempoh perakaunan Dari/Hingga + Tempoh asas Dari/Hingga (dd/MM/yyyy). Portal MakSykt crashes without these." },
+      { "export": "mytax.incorpMY/residentCountry/businessStatus/guaranteeCo/statutoryBody/peMY/spvSecuritisation/controlledCo/foreignNoShareCo/smePara2B2C/shareChange445A/groupClaim", "mytax": "Ya/Tidak flags + SME 2B/2C + 44(5A) + RKT/RKS" },
+      { "export": "smeQualifies", "mytax": "drives later band check, not a portal input here" }
     ]},
-    { "screen": "Pengarah / Pemegang saham", "fields": [
-      { "export": "directors[] {name, sharePct, salary, loan}", "mytax": "Director schedule — loan column must match accounts" },
-      { "export": "shareholders[] {name, shares, pct}", "mytax": "Shareholder schedule" }
+    { "screen": "2 Maklumat Syarikat /eC2025/MakSykt.aspx", "fields": [
+      { "export": "mytax.refundMethod", "mytax": "Kaedah bayaran balik" },
+      { "export": "directors[] {name, sharePct, salary, loan}", "mytax": "popup HKO — loan column must match accounts" },
+      { "export": "shareholders[] {name, shares, pct} + beneficial owners", "mytax": "popup HKP/Benefisial" },
+      { "export": "declarations[] + mytax.dividendToIndividuals/dividendVoucher/controlledTx139_140A/interestRestricted140C/glc/listedBursa/hasParent", "mytax": "Ya/Tidak per declaration" },
+      { "export": "mytax.businessCode/businessActivity/auditorName/auditorTin", "mytax": "Kod perniagaan + juruaudit" }
     ]},
-    { "screen": "Perisytiharan", "fields": [
-      { "export": "declarations[]", "mytax": "Ya/Tidak per declaration incl. controlled transactions s.139/140A" }
+    { "screen": "3 Pendapatan /eC2025/Pendapatan", "fields": [
+      { "export": "statutoryBeforeIncentivesSen", "mytax": "Agregat statutory perniagaan/perkongsian MY + luar MY" },
+      { "export": "nonBusiness[]", "mytax": "Agregat lain (interest s.4(c), rental s.4(d))" },
+      { "export": "donationsSen/zakatSen (capped 10% / 2.5%)", "mytax": "Derma + Zakat perniagaan" },
+      { "export": "chargeableIncomeSen", "mytax": "PENDAPATAN BERCUKAI" }
     ]},
-    { "screen": "Bahagian B", "fields": [
-      { "export": "statutoryBeforeIncentivesSen", "mytax": "Statutory business income" },
-      { "export": "nonBusiness[]", "mytax": "Other sources (interest s.4(c), rental s.4(d))" },
-      { "export": "chargeableIncomeSen", "mytax": "Pendapatan bercukai" },
-      { "export": "grossTaxSen", "mytax": "Cukai atas pendapatan bercukai" },
-      { "export": "cp204PaidSen", "mytax": "s.107C instalments" },
-      { "export": "taxPayableSen", "mytax": "BAKI (balance)" }
+    { "screen": "4 Cukai /eC2025/CukaiKenaDibayar", "fields": [
+      { "export": "chargeableSen + smeQualifies vs portalSmeBand", "mytax": "SME 15/17/24 vs flat 24 — must match, else stop" },
+      { "export": "grossTaxSen", "mytax": "JUMLAH CUKAI DIKENAKAN" },
+      { "export": "cp204PaidSen/whtCreditSen/bilateralCreditSen", "mytax": "s.107C + s.110B/110 + s.132/133" },
+      { "export": "taxPayableSen", "mytax": "BAKI" }
     ]},
-    { "screen": "Lampiran A1", "fields": [
-      { "export": "netProfit + addBacks[] + credits[]", "mytax": "Pelarasan: profit, add-backs, exclusions, adjusted income" }
+    { "screen": "5 Kewangan /eC2025/Kewangan.aspx", "fields": [
+      { "export": "netProfit + kewanganTied + mytax.businessCode", "mytax": "txtL1..L52 P&L + balance sheet (72 inputs observed)" }
     ]},
-    { "screen": "Jadual 3", "fields": [
-      { "export": "totalCaSen / balancingChargeSen / residualCfSen", "mytax": "CA, balancing charge, RE c/f" }
+    { "screen": "6 Elaun /eC2025/Elaun", "fields": [
+      { "export": "totalCaSen / balancingChargeSen / residualCfSen + raAbsorbedSen/itaAbsorbedSen", "mytax": "Sch 3 + 7A + 7B (diserap vs hantar hadapan)" }
     ]},
-    { "screen": "D1", "fields": [
-      { "export": "doubleDeductions[] {code, amount}", "mytax": "Codes 132/157/... with P.U.(A) references" }
+    { "screen": "7 Tuntutan /eC2025/Tuntutan", "fields": [
+      { "export": "doubleDeductions[] {code, amount}", "mytax": "D1 codes 132/157 with P.U.(A) refs" },
+      { "export": "groupReliefSen/pioneerExemptSen", "mytax": "D2/D3/D4 + s129(1)(b) remisi" }
+    ]},
+    { "screen": "8 Rumusan /eC2025/RumusanCukai (preview only)", "fields": [
+      { "export": "chargeableSen/grossTaxSen/taxPayableSen/filingDeadline", "mytax": "BAKI preview + Second Key + digital sign. NEVER click Hantar without explicit approval." }
     ]}
   ],
   "gates": [
+    "profil dates saved before maksykt (portal crashes otherwise)",
     "all checklist items done",
     "no unresolved blocking items",
     "verification panel all pass",
     "user logged in manually",
+    "portalSmeBand read-back matches engine band",
+    "kewangan tied to TB",
     "per-field read-back confirmed",
     "never submit without explicit approval"
   ]

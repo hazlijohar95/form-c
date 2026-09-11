@@ -1,7 +1,9 @@
 import { formatRM } from "@formc/engine";
-import { uid, rmStrToSen } from "../lib/types.js";
-import type { Engagement } from "../lib/types.js";
-import { useComputation } from "./Report.js";
+import { rmStrToSen } from "../lib/rm.js";
+import { updateById, removeById, uid } from "../lib/lists.js";
+import { computeEngagement } from "../lib/computation.js";
+import { LineTable } from "./LineTable.js";
+import type { Engagement, Judgement, OpenItem } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
@@ -12,7 +14,7 @@ interface Check {
 }
 
 export function verification(eng: Engagement): Check[] {
-  const { result, assetRows } = useComputation(eng);
+  const { result, assetRows } = computeEngagement(eng);
   const out: Check[] = [];
   const pbt = rmStrToSen(eng.netProfitRM);
 
@@ -111,38 +113,36 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
 
       <div className="card">
         <h3>[TO OBTAIN] — blocking items</h3>
-        {eng.openItems.map((o) => (
-          <div key={o.id} className="assetbox">
-            <div className="linerow">
-              <input value={o.title} onChange={(e) => patch({ openItems: eng.openItems.map((x) => (x.id === o.id ? { ...x, title: e.target.value } : x)) })} placeholder="Item" style={{ flex: 2 }} />
-              <label className="check"><input type="checkbox" checked={o.resolved} onChange={(e) => patch({ openItems: eng.openItems.map((x) => (x.id === o.id ? { ...x, resolved: e.target.checked } : x)) })} /><span>Resolved</span></label>
-              <button className="btn ghost" onClick={() => patch({ openItems: eng.openItems.filter((x) => x.id !== o.id) })}>×</button>
-            </div>
-            <div className="row2">
-              <div><label className="f">Why it blocks</label><input value={o.whyBlocks} onChange={(e) => patch({ openItems: eng.openItems.map((x) => (x.id === o.id ? { ...x, whyBlocks: e.target.value } : x)) })} /></div>
-              <div><label className="f">Effect if it changes</label><input value={o.effect} onChange={(e) => patch({ openItems: eng.openItems.map((x) => (x.id === o.id ? { ...x, effect: e.target.value } : x)) })} /></div>
-            </div>
-          </div>
-        ))}
-        <button className="btn" onClick={() => patch({ openItems: [...eng.openItems, { id: uid(), title: "", whyBlocks: "", effect: "", resolved: false }] })}>+ Blocking item</button>
+        <LineTable<OpenItem>
+          data={eng.openItems}
+          onUpdate={(id, p) => patch({ openItems: updateById(eng.openItems, id, p) })}
+          onRemove={(id) => patch({ openItems: removeById(eng.openItems, id) })}
+          onAdd={() => patch({ openItems: [...eng.openItems, { id: uid(), title: "", whyBlocks: "", effect: "", resolved: false }] })}
+          addLabel="+ Blocking item"
+          columns={[
+            { header: "Item", cell: (o, set) => (<input value={o.title} onChange={(e) => set({ title: e.target.value })} placeholder="Item" style={{ width: "100%" }} />) },
+            { header: "Why it blocks", cell: (o, set) => (<input value={o.whyBlocks} onChange={(e) => set({ whyBlocks: e.target.value })} placeholder="Why" style={{ width: "100%" }} />) },
+            { header: "Effect", cell: (o, set) => (<input value={o.effect} onChange={(e) => set({ effect: e.target.value })} placeholder="Effect" style={{ width: "100%" }} />) },
+            { header: "Resolved", cell: (o, set) => (<label className="check"><input type="checkbox" checked={o.resolved} onChange={(e) => set({ resolved: e.target.checked })} /><span>Yes</span></label>) },
+          ]}
+        />
       </div>
 
       <div className="card">
         <h3>Judgements — partner sign-off</h3>
-        {eng.judgements.map((j) => (
-          <div key={j.id} className="assetbox">
-            <div className="linerow">
-              <input value={j.title} onChange={(e) => patch({ judgements: eng.judgements.map((x) => (x.id === j.id ? { ...x, title: e.target.value } : x)) })} placeholder="Judgement" style={{ flex: 2 }} />
-              <label className="check"><input type="checkbox" checked={j.signedOff} onChange={(e) => patch({ judgements: eng.judgements.map((x) => (x.id === j.id ? { ...x, signedOff: e.target.checked } : x)) })} /><span>Signed off</span></label>
-              <button className="btn ghost" onClick={() => patch({ judgements: eng.judgements.filter((x) => x.id !== j.id) })}>×</button>
-            </div>
-            <div className="row2">
-              <div><label className="f">Position taken</label><input value={j.position} onChange={(e) => patch({ judgements: eng.judgements.map((x) => (x.id === j.id ? { ...x, position: e.target.value } : x)) })} /></div>
-              <div><label className="f">Alternative</label><input value={j.alternative} onChange={(e) => patch({ judgements: eng.judgements.map((x) => (x.id === j.id ? { ...x, alternative: e.target.value } : x)) })} /></div>
-            </div>
-          </div>
-        ))}
-        <button className="btn" onClick={() => patch({ judgements: [...eng.judgements, { id: uid(), title: "", position: "", alternative: "", signedOff: false }] })}>+ Judgement</button>
+        <LineTable<Judgement>
+          data={eng.judgements}
+          onUpdate={(id, p) => patch({ judgements: updateById(eng.judgements, id, p) })}
+          onRemove={(id) => patch({ judgements: removeById(eng.judgements, id) })}
+          onAdd={() => patch({ judgements: [...eng.judgements, { id: uid(), title: "", position: "", alternative: "", signedOff: false }] })}
+          addLabel="+ Judgement"
+          columns={[
+            { header: "Judgement", cell: (j, set) => (<input value={j.title} onChange={(e) => set({ title: e.target.value })} placeholder="Judgement" style={{ width: "100%" }} />) },
+            { header: "Position", cell: (j, set) => (<input value={j.position} onChange={(e) => set({ position: e.target.value })} placeholder="Position" style={{ width: "100%" }} />) },
+            { header: "Alternative", cell: (j, set) => (<input value={j.alternative} onChange={(e) => set({ alternative: e.target.value })} placeholder="Alternative" style={{ width: "100%" }} />) },
+            { header: "Signed", cell: (j, set) => (<label className="check"><input type="checkbox" checked={j.signedOff} onChange={(e) => set({ signedOff: e.target.checked })} /><span>Yes</span></label>) },
+          ]}
+        />
       </div>
 
       <div className="card">
@@ -163,8 +163,8 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
       <div className="card">
         <h3>Computation runs (basis history)</h3>
         {eng.runs.length === 0 && <p className="hint">No snapshots yet — snapshot from the Report tab.</p>}
-        {eng.runs.slice(-8).reverse().map((r) => (
-          <div key={r.at} className="kv">
+        {eng.runs.slice(-8).reverse().map((r, i) => (
+          <div key={`${r.at}-${i}`} className="kv">
             <span className="hint">{new Date(r.at).toLocaleString()}</span>
             <span className="num">CI {formatRM(r.ciSen)} · Tax {formatRM(r.taxSen)} · Bal {formatRM(r.payableSen)}</span>
           </div>

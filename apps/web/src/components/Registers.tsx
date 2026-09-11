@@ -1,5 +1,8 @@
-import { uid } from "../lib/types.js";
-import type { Engagement } from "../lib/types.js";
+import { uid, updateById, removeById } from "../lib/lists.js";
+import { hasDebitBalance } from "../lib/rm.js";
+import { LineTable } from "./LineTable.js";
+import { RmInput } from "./RmInput.js";
+import type { Cp204Bill, Director, Engagement, Shareholder } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -10,29 +13,35 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
     <div>
       <div className="card">
         <h3>Directors (Form C schedule)</h3>
-        {eng.directors.map((d) => (
-          <div key={d.id} className="linerow">
-            <input value={d.name} onChange={(e) => patch({ directors: eng.directors.map((x) => (x.id === d.id ? { ...x, name: e.target.value } : x)) })} placeholder="Name" style={{ flex: 2 }} />
-            <input className="num" value={d.sharePct} onChange={(e) => patch({ directors: eng.directors.map((x) => (x.id === d.id ? { ...x, sharePct: e.target.value } : x)) })} placeholder="Share %" style={{ flex: 1 }} />
-            <input className="num" value={d.salaryRM} onChange={(e) => patch({ directors: eng.directors.map((x) => (x.id === d.id ? { ...x, salaryRM: e.target.value } : x)) })} placeholder="Salary RM" style={{ flex: 1 }} />
-            <input className="num" value={d.loanRM} onChange={(e) => patch({ directors: eng.directors.map((x) => (x.id === d.id ? { ...x, loanRM: e.target.value } : x)) })} placeholder="Loan RM" style={{ flex: 1 }} />
-            <button className="btn ghost" onClick={() => patch({ directors: eng.directors.filter((x) => x.id !== d.id) })}>×</button>
-          </div>
-        ))}
-        <button className="btn" onClick={() => patch({ directors: [...eng.directors, { id: uid(), name: "", sharePct: "", salaryRM: "", loanRM: "" }] })}>+ Director</button>
+        <LineTable<Director>
+          data={eng.directors}
+          onUpdate={(id, p) => patch({ directors: updateById(eng.directors, id, p) })}
+          onRemove={(id) => patch({ directors: removeById(eng.directors, id) })}
+          onAdd={() => patch({ directors: [...eng.directors, { id: uid(), name: "", sharePct: "", salaryRM: "", loanRM: "" }] })}
+          addLabel="+ Director"
+          columns={[
+            { header: "Name", cell: (d, set) => (<input value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Name" style={{ width: "100%" }} />) },
+            { header: "Share %", cell: (d, set) => (<input value={d.sharePct} onChange={(e) => set({ sharePct: e.target.value })} placeholder="%" style={{ width: "100%" }} />) },
+            { header: "Salary RM", cell: (d, set) => (<RmInput value={d.salaryRM} on={(v) => set({ salaryRM: v })} placeholder="RM" />) },
+            { header: "Loan RM", cell: (d, set) => (<RmInput value={d.loanRM} on={(v) => set({ loanRM: v })} placeholder="RM" />) },
+          ]}
+        />
       </div>
 
       <div className="card">
         <h3>Shareholders</h3>
-        {eng.shareholders.map((s) => (
-          <div key={s.id} className="linerow">
-            <input value={s.name} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, name: e.target.value } : x)) })} placeholder="Name" style={{ flex: 2 }} />
-            <input className="num" value={s.shares} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, shares: e.target.value } : x)) })} placeholder="Shares" style={{ flex: 1 }} />
-            <input className="num" value={s.pct} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, pct: e.target.value } : x)) })} placeholder="%" style={{ flex: 1 }} />
-            <button className="btn ghost" onClick={() => patch({ shareholders: eng.shareholders.filter((x) => x.id !== s.id) })}>×</button>
-          </div>
-        ))}
-        <button className="btn" onClick={() => patch({ shareholders: [...eng.shareholders, { id: uid(), name: "", shares: "", pct: "" }] })}>+ Shareholder</button>
+        <LineTable<Shareholder>
+          data={eng.shareholders}
+          onUpdate={(id, p) => patch({ shareholders: updateById(eng.shareholders, id, p) })}
+          onRemove={(id) => patch({ shareholders: removeById(eng.shareholders, id) })}
+          onAdd={() => patch({ shareholders: [...eng.shareholders, { id: uid(), name: "", shares: "", pct: "" }] })}
+          addLabel="+ Shareholder"
+          columns={[
+            { header: "Name", cell: (s, set) => (<input value={s.name} onChange={(e) => set({ name: e.target.value })} placeholder="Name" style={{ width: "100%" }} />) },
+            { header: "Shares", cell: (s, set) => (<input value={s.shares} onChange={(e) => set({ shares: e.target.value })} placeholder="Shares" style={{ width: "100%" }} />) },
+            { header: "%", cell: (s, set) => (<input value={s.pct} onChange={(e) => set({ pct: e.target.value })} placeholder="%" style={{ width: "100%" }} />) },
+          ]}
+        />
       </div>
 
       <div className="card">
@@ -42,13 +51,13 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
           <div><label className="f">Market rate for s.140B (% p.a.)</label><input className="num" value={eng.deemedRatePct} onChange={(e) => patch({ deemedRatePct: e.target.value })} placeholder="e.g. 4" /></div>
         </div>
         {eng.relatedAccounts.map((a) => {
-          const debit = a.balances.some((b) => Number(b) < 0);
+          const debit = hasDebitBalance(a.balances);
           return (
             <div key={a.id} className="assetbox">
               <div className="linerow">
-                <input value={a.name} onChange={(e) => patch({ relatedAccounts: eng.relatedAccounts.map((x) => (x.id === a.id ? { ...x, name: e.target.value } : x)) })} placeholder="e.g. Director — current account" style={{ flex: 3 }} />
+                <input value={a.name} onChange={(e) => patch({ relatedAccounts: updateById(eng.relatedAccounts, a.id, { name: e.target.value }) })} placeholder="e.g. Director — current account" style={{ flex: 3 }} />
                 {debit && <span className="flag crit" style={{ margin: 0 }}>DEBIT — s.140B</span>}
-                <button className="btn ghost" onClick={() => patch({ relatedAccounts: eng.relatedAccounts.filter((x) => x.id !== a.id) })}>×</button>
+                <button className="btn ghost" onClick={() => patch({ relatedAccounts: removeById(eng.relatedAccounts, a.id) })}>×</button>
               </div>
               <div className="mgrid">
                 {MONTHS.map((m, i) => (
@@ -60,7 +69,7 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
                       onChange={(e) => {
                         const b = [...a.balances];
                         b[i] = e.target.value;
-                        patch({ relatedAccounts: eng.relatedAccounts.map((x) => (x.id === a.id ? { ...x, balances: b } : x)) });
+                        patch({ relatedAccounts: updateById(eng.relatedAccounts, a.id, { balances: b }) });
                       }}
                     />
                   </div>
@@ -74,16 +83,19 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
 
       <div className="card">
         <h3>CP204 instalment bills</h3>
-        {eng.cp204Bills.map((b) => (
-          <div key={b.id} className="linerow">
-            <input value={b.billNo} onChange={(e) => patch({ cp204Bills: eng.cp204Bills.map((x) => (x.id === b.id ? { ...x, billNo: e.target.value } : x)) })} placeholder="Bill no" style={{ flex: 2 }} />
-            <input className="num" value={b.amountRM} onChange={(e) => patch({ cp204Bills: eng.cp204Bills.map((x) => (x.id === b.id ? { ...x, amountRM: e.target.value } : x)) })} placeholder="RM" style={{ flex: 1 }} />
-            <input value={b.paidOn} onChange={(e) => patch({ cp204Bills: eng.cp204Bills.map((x) => (x.id === b.id ? { ...x, paidOn: e.target.value } : x)) })} placeholder="Paid YYYY-MM-DD" style={{ flex: 1.2 }} />
-            <label className="check"><input type="checkbox" checked={b.inFY} onChange={(e) => patch({ cp204Bills: eng.cp204Bills.map((x) => (x.id === b.id ? { ...x, inFY: e.target.checked } : x)) })} /><span>In FY</span></label>
-            <button className="btn ghost" onClick={() => patch({ cp204Bills: eng.cp204Bills.filter((x) => x.id !== b.id) })}>×</button>
-          </div>
-        ))}
-        <button className="btn" onClick={() => patch({ cp204Bills: [...eng.cp204Bills, { id: uid(), billNo: "", amountRM: "850", paidOn: "", inFY: true }] })}>+ Bill</button>
+        <LineTable<Cp204Bill>
+          data={eng.cp204Bills}
+          onUpdate={(id, p) => patch({ cp204Bills: updateById(eng.cp204Bills, id, p) })}
+          onRemove={(id) => patch({ cp204Bills: removeById(eng.cp204Bills, id) })}
+          onAdd={() => patch({ cp204Bills: [...eng.cp204Bills, { id: uid(), billNo: "", amountRM: "850", paidOn: "", inFY: true }] })}
+          addLabel="+ Bill"
+          columns={[
+            { header: "Bill no", cell: (b, set) => (<input value={b.billNo} onChange={(e) => set({ billNo: e.target.value })} placeholder="Bill no" style={{ width: "100%" }} />) },
+            { header: "RM", cell: (b, set) => (<RmInput value={b.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+            { header: "Paid", cell: (b, set) => (<input value={b.paidOn} onChange={(e) => set({ paidOn: e.target.value })} placeholder="YYYY-MM-DD" style={{ width: "100%" }} />) },
+            { header: "In FY", cell: (b, set) => (<label className="check"><input type="checkbox" checked={b.inFY} onChange={(e) => set({ inFY: e.target.checked })} /><span>Yes</span></label>) },
+          ]}
+        />
       </div>
     </div>
   );

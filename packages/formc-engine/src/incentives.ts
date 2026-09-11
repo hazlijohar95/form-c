@@ -1,4 +1,5 @@
 import type { Sen } from "./money.js";
+import { CAPS } from "./rates.js";
 
 // Incentives: reinvestment allowance (Sch 7A, 60% of QE, against 70% of
 // statutory business income), investment tax allowance (against itaPct% of
@@ -26,8 +27,8 @@ export function applyIncentives(statutoryBusinessSen: Sen, input: IncentiveInput
   afterSen: Sen;
   result: IncentiveResult;
 } {
-  const raAvailable = Math.round(input.raQeSen * 0.6) + input.raBfSen;
-  const raCap = Math.round(statutoryBusinessSen * 0.7);
+  const raAvailable = Math.round(input.raQeSen * CAPS.raRate) + input.raBfSen;
+  const raCap = Math.round(statutoryBusinessSen * CAPS.raCapPctOfStatutory);
   const raAbsorbed = Math.min(raAvailable, Math.max(0, raCap));
   const afterRa = statutoryBusinessSen - raAbsorbed;
 
@@ -58,7 +59,7 @@ export interface GroupReliefInput {
 export function validateGroupRelief(input: GroupReliefInput): { allowedSen: Sen; note: string } {
   if (!input.conditionsMet || input.surrenderedSen <= 0)
     return { allowedSen: 0, note: "Group relief not available (conditions fail)" };
-  const cap = Math.round(input.surrendererLossSen * 0.7);
+  const cap = Math.round(input.surrendererLossSen * CAPS.groupReliefMaxPct);
   if (input.surrenderedSen > cap)
     return { allowedSen: cap, note: "Surrender capped at 70% of surrenderer loss" };
   return { allowedSen: input.surrenderedSen, note: "" };

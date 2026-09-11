@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { formatRM } from "@formc/engine";
 import { hintFor, parseTrialBalance } from "../lib/ingest.js";
-import type { AddBackSection } from "@formc/engine";
-import { SECTIONS, rmStrToSen, uid } from "../lib/types.js";
+import { SECTIONS } from "../lib/types.js";
+import { senToRMString } from "../lib/rm.js";
+import { uid } from "../lib/lists.js";
 import type { Engagement } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
@@ -18,18 +19,19 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
     const mode = assign[id] ?? "ignore";
     if (mode === "ignore") return;
     if (mode.startsWith("add:")) {
-      const section = mode.slice(4) as AddBackSection;
+      const section = mode.slice(4);
+      if (!(SECTIONS as string[]).includes(section)) return;
       patch({
         addBacks: [
           ...eng.addBacks,
-          { id: uid(), description: line.label, amountRM: String(line.amountSen / 100), section },
+          { id: uid(), description: line.label, amountRM: senToRMString(line.amountSen), section: section as (typeof SECTIONS)[number] },
         ],
       });
     } else if (mode === "credit") {
       patch({
         credits: [
           ...eng.credits,
-          { id: uid(), description: line.label, amountRM: String(line.amountSen / 100), basis: "" },
+          { id: uid(), description: line.label, amountRM: senToRMString(line.amountSen), basis: "" },
         ],
       });
     }

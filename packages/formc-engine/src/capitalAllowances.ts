@@ -75,22 +75,30 @@ const AA_RATE: Record<CaCategory, number> = {
   "iba-3": 0.03,
 };
 
-export function capMotorQe(costSen: Sen, asset: Pick<AssetInput, "isMotorNonCommercial" | "isCommercialVehicle" | "motorTotalCostRM">): Sen {
-  if (!asset.isMotorNonCommercial || asset.isCommercialVehicle) return costSen;
-  const totalCost = asset.motorTotalCostRM ?? 0;
-  const capRM =
-    totalCost > 0 && totalCost <= CAPS.motorNewTotalCostRM
-      ? CAPS.motorNewQeRM // new test needs isNew; caller passes capped cost already — see below
-      : CAPS.motorGeneralQeRM;
-  return Math.min(costSen, toSen(capRM));
+function motorCapRM(isNew: boolean, totalCostRM: number): number {
+  return isNew && totalCostRM > 0 && totalCostRM <= CAPS.motorNewTotalCostRM
+    ? CAPS.motorNewQeRM
+    : CAPS.motorGeneralQeRM;
 }
 
-export function computeAsset(
-  a: AssetInput,
-  isSme: boolean,
-  smallValueUsedSen: Sen,
-  isNewVehicle?: boolean
-): AssetResult {
+export function capMotorQe(costSen: Sen, asset: Pick<AssetInput, "isNew" | "isMotorNonCommercial" | "isCommercialVehicle" | "motorTotalCostRM">): Sen {
+  if (!asset.isMotorNonCommercial || asset.isCommercialVehicle) return costSen;
+  return Math.min(costSen, toSen(motorCapRM(asset.isNew, asset.motorTotalCostRM ?? 0)));
+}
+
+export function isDataNote(note: string): boolean {
+  return note.startsWith("DATA:");
+}
+
+export interface AssetContext {
+  isSme: boolean;
+  /** Remaining non-SME small-value cap; null = uncapped (SME). */
+  svaCapRemainingSen: Sen | null;
+}
+
+export function computeAsset(a: AssetInput, ctx: AssetContext): AssetResult {
+  const isSme = ctx.isSme;
+  const capRemainingSen = ctx.svaCapRemainingSen;
   const notes: string[] = [];
   let qe = a.costSen;
   const pct = a.qualifyingPct ?? 100;
@@ -106,21 +114,21 @@ export function computeAsset(
       return zero(a, 0, 0, notes);
     }
     notes.push("Hire purchase: allowances on capital paid to date (Para 46)");
-    const paidTotal = a.hpPaidTotalSen;
-    const paidPeriod = a.hpPaidPeriodSen;
+    let paidTotal = a.hpPaidTotalSen;
+    let paidPeriod = a.hpPaidPeriodSen;
     const hpCat: CaCategory =
       a.category === "small-value" ? "cat2-14" : a.category;
-    return hpRates(a, hpCat, paidTotal, paidPeriod, isSme, smallValueUsedSen, notes, qe);
+    if (a.category === "small-value")
+      notes.push("HP excluded from Para 19A (PR 1/2008) — Cat 2 rates applied");
+    return hpRates(a, hpCat, paidTotal, paidPeriod, notes);
   }
   if (a.isMotorNonCommercial && !a.isCommercialVehicle) {
-    const totalCost = a.motorTotalCostRM ?? 0;
-    const capRM =
-      a.isNew && isNewVehicle !== false && totalCost > 0 && totalCost <= CAPS.motorNewTotalCostRM
-        ? CAPS.motorNewQeRM
-        : CAPS.motorGeneralQeRM;
-    const capped = Math.min(qe, toSen(capRM));
-    if (capped < qe) notes.push(`Motor QE capped at RM${capRM.toLocaleString()} (Sch 3 Para 2(2))`);
-    qe = capped;
+    const before = qe;
+    qe = capMotorQe(qe, a);
+    if (qe < before) {
+      const capRM = motorCapRM(a.isNew, a.motorTotalCostRM ?? 0);
+      notes.push(`Motor QE capped at RM${capRM.toLocaleString()} (Sch 3 Para 2(2))`);
+    }
   }
 
   const residualBf = a.isNew ? 0 : Math.max(0, qe - a.allowancesBfSen);
@@ -128,11 +136,7 @@ export function computeAsset(
     notes.push("DATA: allowances b/f exceed cost — opening position inconsistent");
   const addition = a.isNew ? qe : 0;
 
-  if (a.isHirePurchase && a.category === "small-value") {
-    notes.push("HP excluded from Para 19A (PR 1/2008) — Cat 2 rates applied");
-  }
-  const cat: CaCategory =
-    a.isHirePurchase && a.category === "small-value" ? "cat2-14" : a.category;
+  const cat: CaCategory = a.category;
 
   // Disposal: no IA/AA in year of disposal (Sch 3 Para 15 — not in use at year end).
   if (a.disposalPriceSen !== undefined) {
@@ -173,11 +177,11 @@ export function computeAsset(
   if (cat === "small-value" && (!a.isNew || qe > toSen(CAPS.smallValuePerAssetRM)))
     notes.push("Para 19A requires new asset with QE <= RM2,000 — normal rates applied");
   const useCat: CaCategory = svaEligible ? "small-value" : cat === "small-value" ? "cat2-14" : cat;
-  if (svaEligible && !isSme && smallValueUsedSen + qe > toSen(CAPS.smallValueAnnualCapNonSmeRM)) {
+  if (svaEligible && !isSme && (capRemainingSen === null || capRemainingSen < qe)) {
     notes.push("Small-value cap RM20k/YA exceeded (non-SME) — normal rates on excess");
     return normalRates(a, useCat === "small-value" ? "cat2-14" : useCat, qe, residualBf, addition, notes);
   }
-  if (svaEligible && (isSme || smallValueUsedSen + qe <= toSen(CAPS.smallValueAnnualCapNonSmeRM))) {
+  if (svaEligible) {
     notes.push("Para 19A 100% write-off" + (isSme ? " (SME, no cap)" : ""));
     return {
       id: a.id,
@@ -219,28 +223,20 @@ function zero(a: AssetInput, residualBf: Sen, addition: Sen, notes: string[]): A
 
 // Hire-purchase: QE base = cumulative capital paid; IA on first-period
 // payment; AA straight-line on paid-to-date, capped at remaining.
+// HP excluded from Para 19A — SME cap params intentionally absent.
 function hpRates(
   a: AssetInput,
   cat: CaCategory,
   paidTotal: Sen,
   paidPeriod: Sen,
-  isSme: boolean,
-  smallValueUsedSen: Sen,
-  notes: string[],
-  fullCost: Sen
+  notes: string[]
 ): AssetResult {
-  void isSme;
-  void smallValueUsedSen;
-  void fullCost;
   if (a.isMotorNonCommercial && !a.isCommercialVehicle) {
-    const totalCost = a.motorTotalCostRM ?? 0;
-    const capRM =
-      a.isNew && totalCost > 0 && totalCost <= CAPS.motorNewTotalCostRM
-        ? CAPS.motorNewQeRM
-        : CAPS.motorGeneralQeRM;
-    if (paidTotal > toSen(capRM)) {
+    const beforeTotal = paidTotal;
+    paidTotal = capMotorQe(paidTotal, a);
+    if (paidTotal < beforeTotal) {
+      const capRM = motorCapRM(a.isNew, a.motorTotalCostRM ?? 0);
       notes.push(`Motor QE capped at RM${capRM.toLocaleString()} (Para 2(2))`);
-      paidTotal = toSen(capRM);
       paidPeriod = Math.min(paidPeriod, paidTotal);
     }
   }
@@ -313,4 +309,16 @@ export function scheduleRollForward(rows: AssetResult[]): Sen {
     (acc, r) => acc + r.residualBfSen + r.additionSen - r.totalCaSen - r.disposedReSen - r.residualCfSen,
     0
   );
+}
+
+export interface OverrideRoll {
+  residualBfSen: Sen;
+  additionsSen: Sen;
+  caSen: Sen;
+  disposedReSen: Sen;
+  residualCfSen: Sen;
+}
+
+export function overrideRollForward(o: OverrideRoll): Sen {
+  return o.residualBfSen + o.additionsSen - o.caSen - o.disposedReSen - o.residualCfSen;
 }

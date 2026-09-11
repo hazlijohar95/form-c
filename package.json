@@ -7,9 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace apps/web",
-    "build": "npm run build --workspace @formc/engine && npm run build --workspace apps/web",
-    "test": "npm run test --workspace @formc/engine"
+    "dev": "npm run dev --workspace formc-web",
+    "build": "npm run build --workspace @formc/engine && npm run build --workspace formc-web",
+    "test": "npm run test --workspace @formc/engine && npm run test --workspace formc-web"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",

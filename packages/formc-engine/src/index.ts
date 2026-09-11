@@ -5,35 +5,37 @@ import { computeAsset, scheduleRollForward } from "./capitalAllowances.js";
 import type { AssetResult } from "./capitalAllowances.js";
 import type { ComputationInput } from "./chargeable.js";
 import { computeChargeable, cp204Penalty } from "./chargeable.js";
-import { checkSme } from "./rates.js";
-import type { SmeProfile } from "./rates.js";
+import { resolveSme } from "./sme.js";
+import type { SmeProfile } from "./sme.js";
+import { computeDisallowances } from "./disallowances.js";
+import { computeSchedule3 } from "./schedule3.js";
+import type { Schedule3Override } from "./schedule3.js";
 import type { Sen } from "./money.js";
 import type { WhtLine } from "./related.js";
-import { assessWht, earningsStripping } from "./related.js";
 import { validateGroupRelief } from "./incentives.js";
 export type { WhtLine, WhtSection } from "./related.js";
-export { assessWht, earningsStripping, deemedInterest140B } from "./related.js";
+export { assessWht, earningsStripping, deemedInterest140B, assessRelatedAccount, WHT_SECTIONS, isWhtSection } from "./related.js";
+export { doubleTotal, entertainmentAddBack } from "./adjustedIncome.js";
 export { applyIncentives, validateGroupRelief } from "./incentives.js";
+export { computeSchedule3 } from "./schedule3.js";
+export { resolveSme, checkSme, smeBandsFor, smeBands, flatBand, smePortalBand } from "./sme.js";
+export { computeDisallowances } from "./disallowances.js";
+export {
+  MYTAX_STEPS,
+  blankMyTaxProfile,
+  coverProfil,
+  coverMaksykt,
+  coverRumusanGate,
+  evaluateCoverage,
+} from "./mytax.js";
+export type { MyTaxProfile, MyTaxStep, MyTaxStepId, CoverageInput, StepCoverage } from "./mytax.js";
 
 export { formatRM, toRM, toSen } from "./money.js";
 export type { Sen } from "./money.js";
-export { computeAsset, capMotorQe, scheduleRollForward } from "./capitalAllowances.js";
-export type { AssetInput, AssetResult, CaCategory } from "./capitalAllowances.js";
+export { computeAsset, capMotorQe, isDataNote, scheduleRollForward, overrideRollForward } from "./capitalAllowances.js";
+export type { AssetInput, AssetResult, AssetContext, CaCategory } from "./capitalAllowances.js";
 export type { AddBack, Deduction, DoubleDeduction, AddBackSection } from "./adjustedIncome.js";
-export { checkSme } from "./rates.js";
-
-/** Externally-maintained Schedule 3 (e.g. FA-register workbook, prior agent basis).
- *  Used INSTEAD of the per-asset loop. Roll-forward must still foot. */
-export interface Schedule3Override {
-  caSen: Sen;
-  balancingChargeSen: Sen;
-  balancingAllowanceSen: Sen;
-  residualBfSen: Sen;
-  additionsSen: Sen;
-  disposedReSen: Sen;
-  residualCfSen: Sen;
-  note: string; // basis: whose schedule, status (agreed/modelled)
-}
+export type { Schedule3Override } from "./schedule3.js";
 
 export interface FormCInput {
   ya: number;
@@ -114,66 +116,29 @@ export function filingDeadline7Months(fyeTo: string): string {
 }
 
 export function computeFormC(input: FormCInput): FormCResult {
-  const sme = checkSme(input.sme);
+  const sme = resolveSme(input.sme, { isIhc: input.isIhc, ya: input.ya });
 
-  // s.39(2): unremitted WHT kills the deduction — auto add-back.
-  const whtAuto: AddBack[] = [];
-  for (const w of input.whtLines) {
-    const r = assessWht(w);
-    if (!r.deductible)
-      whtAuto.push({
-        description: `${w.description} (WHT ${Math.round(r.rate * 100)}% not remitted)`,
-        amountSen: w.amountSen,
-        section: "s.39(2)",
-      });
-  }
-  // s.140C: excess related-party interest permanently disallowed.
-  const strip = earningsStripping(input.relatedInterestSen, input.taxEbitdaSen);
-  if (strip > 0)
-    whtAuto.push({
-      description: "Related-party interest above 20% tax-EBITDA",
-      amountSen: strip,
-      section: "s.140C",
-    });
+  const dis = computeDisallowances({
+    whtLines: input.whtLines,
+    relatedInterestSen: input.relatedInterestSen,
+    taxEbitdaSen: input.taxEbitdaSen,
+    deemedInterestSen: input.deemedInterestSen,
+  });
 
   const adjusted = adjustedIncome(
     input.netProfitSen,
-    [...input.addBacks, ...whtAuto],
+    [...input.addBacks, ...dis.autoAddBacks],
     input.credits,
     input.doubleDeductions
   );
 
-  let totalCa = 0;
-  let bc = 0;
-  let ba = 0;
-  let roll = 0;
-  let reCf = 0;
-  const schedNotes: string[] = [];
-
-  if (input.schedule3Override) {
-    const o = input.schedule3Override;
-    totalCa = o.caSen;
-    bc = o.balancingChargeSen;
-    ba = o.balancingAllowanceSen;
-    reCf = o.residualCfSen;
-    roll = o.residualBfSen + o.additionsSen - o.caSen - o.disposedReSen - o.residualCfSen;
-    if (roll !== 0) schedNotes.push(`Schedule 3 roll-forward off by ${roll} sen`);
-    schedNotes.push(`Schedule 3 per override: ${o.note}`);
-  } else {
-    let smallUsed = 0;
-    const rows: AssetResult[] = [];
-    for (const a of input.assets) {
-      const r = computeAsset(a, sme.qualifies, smallUsed);
-      rows.push(r);
-      totalCa += r.totalCaSen;
-      bc += r.balancingChargeSen;
-      ba += r.balancingAllowanceSen;
-      reCf += r.residualCfSen;
-      if (a.category === "small-value") smallUsed += a.costSen;
-      for (const n of r.notes) if (n.startsWith("DATA:")) schedNotes.push(`${a.description}: ${n}`);
-    }
-    roll = scheduleRollForward(rows);
-  }
+  const sched = computeSchedule3(input.assets, sme.qualifies, input.schedule3Override);
+  const totalCa = sched.totalCaSen;
+  const bc = sched.balancingChargeSen;
+  const ba = sched.balancingAllowanceSen;
+  const roll = sched.rollSen;
+  const reCf = sched.residualCfSen;
+  const schedNotes: string[] = [...sched.notes];
 
   const validatedGroupRelief = validateGroupRelief({
     surrenderedSen: input.groupSurrenderedSen,
@@ -182,10 +147,7 @@ export function computeFormC(input: FormCInput): FormCResult {
   });
   const comp: ComputationInput = {
     adjustedIncomeSen: adjusted,
-    nonBusiness:
-      input.deemedInterestSen > 0
-        ? [...input.nonBusiness, { label: "Deemed interest (s.140B)", amountSen: input.deemedInterestSen }]
-        : input.nonBusiness,
+    nonBusiness: [...input.nonBusiness, ...dis.nonBusinessExtra],
     currentCaSen: totalCa,
     unabsorbedCaBfSen: input.unabsorbedCaBfSen,
     donationsSen: input.donationsSen,
@@ -204,7 +166,7 @@ export function computeFormC(input: FormCInput): FormCResult {
     raBfSen: input.raBfSen,
     itaAllowanceSen: input.itaAllowanceSen,
     itaBfSen: input.itaBfSen,
-    itaPct: input.itaPct === 100 ? 100 : 70,
+    itaPct: input.itaPct,
     pioneerExemptSen: input.pioneerExemptSen,
     groupSurrenderedSen: validatedGroupRelief.allowedSen,
     isIhc: input.isIhc,
@@ -213,18 +175,12 @@ export function computeFormC(input: FormCInput): FormCResult {
   const penalty = cp204Penalty(out.grossTaxSen, input.cp204EstimateSen);
 
   const findings: string[] = [...schedNotes];
-  if (!sme.qualifies) findings.push(`SME rate denied: ${sme.failedConditions.join("; ")} — flat 24% applied`);
-  if (out.donationsAllowedSen < input.donationsSen) findings.push("Donations capped at 10% of aggregate income");
-  if (out.zakatAllowedSen < input.zakatSen) findings.push("Company zakat capped at 2.5% of aggregate income");
+  if (sme.finding) findings.push(sme.finding);
+  if (sme.yaNote) findings.push(sme.yaNote);
+  findings.push(...out.findings);
   if (penalty > 0) findings.push("CP204 underestimation penalty applies (shortfall > 30% of tax payable)");
-  if (input.bfLosses.some((l) => input.ya - l.yearOfAssessment > 10))
-    findings.push("Expired B/F loss year dropped (10-year limit, s.44(5A))");
-  if (out.unabsorbedCaCfSen > 0) findings.push("Para 75 bit: part of CA unabsorbed, carried forward same source");
-  for (const w of input.whtLines) {
-    const r = assessWht(w);
-    if (!r.deductible) findings.push(`WHT not remitted on "${w.description}" — added back s.39(2)`);
-  }
-  if (strip > 0) findings.push("s.140C earnings stripping disallowance applied");
+  findings.push(...dis.whtFindings);
+  if (dis.stripFinding) findings.push(dis.stripFinding);
   if (validatedGroupRelief.note && input.groupSurrenderedSen > 0)
     findings.push(validatedGroupRelief.note);
   if (input.isIhc) findings.push("s.60F IHC: flat 24%, no offsets or carry-forwards");
@@ -255,7 +211,7 @@ export function computeFormC(input: FormCInput): FormCResult {
     residualCfSen: reCf,
     unabsorbedCaCfSen: out.unabsorbedCaCfSen,
     filingDeadline: filingDeadline7Months(input.fyeTo),
-    smeQualifies: sme.qualifies && !input.isIhc,
+    smeQualifies: sme.smeQualifies,
     smeFailed: sme.failedConditions,
     findings,
   };

@@ -7,6 +7,18 @@ import { CAPS } from "./rates.js";
 
 export type WhtSection = "s.109-interest" | "s.109-royalty" | "s.109B" | "s.107A" | "s.109A";
 
+export const WHT_SECTIONS: WhtSection[] = [
+  "s.109-interest",
+  "s.109-royalty",
+  "s.109B",
+  "s.107A",
+  "s.109A",
+];
+
+export function isWhtSection(v: string): v is WhtSection {
+  return (WHT_SECTIONS as string[]).includes(v);
+}
+
 export const WHT_RATES: Record<WhtSection, number> = {
   "s.109-interest": 0.15,
   "s.109-royalty": 0.1,
@@ -68,4 +80,27 @@ export function earningsStrippingWith(
 export function deemedInterest140B(peakDebitSen: Sen, debitMonths: number, annualRatePct: number): Sen {
   if (peakDebitSen <= 0 || debitMonths <= 0 || annualRatePct <= 0) return 0;
   return Math.round(((peakDebitSen * annualRatePct) / 100) * (debitMonths / 12));
+}
+
+export interface RelatedAccountAssessment {
+  peakDebitSen: Sen;
+  debitMonths: number;
+  deemedSen: Sen;
+}
+
+// Deepened Disallowance Module Adapter: month-end balances (RM, debits
+// negative) + market rate → peak debit, debit months, deemed interest.
+// Pure over numbers — RM-string parsing stays at the Computation bridge Seam.
+export function assessRelatedAccount(balancesRM: number[], annualRatePct: number): RelatedAccountAssessment {
+  const nums = balancesRM.filter((n) => Number.isFinite(n));
+  if (!(annualRatePct > 0) || nums.every((n) => n >= 0))
+    return { peakDebitSen: 0, debitMonths: 0, deemedSen: 0 };
+  const peak = Math.max(0, ...nums.map((n) => -n));
+  const months = nums.filter((n) => n < 0).length;
+  const peakDebitSen = Math.round(peak * 100);
+  return {
+    peakDebitSen,
+    debitMonths: months,
+    deemedSen: deemedInterest140B(peakDebitSen, months, annualRatePct),
+  };
 }

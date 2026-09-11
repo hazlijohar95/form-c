@@ -1,0 +1,13 @@
+name = "formc-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+account_id = "9c006d850453ab5c068f5688d138521b"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "formc-engagements"
+database_id = "f348fe3a-fd65-4704-a1dc-55857865a175"
+
+[vars]
+ENGINE_VERSION = "0.1.0"
+ALLOWED_ORIGINS = "https://master.formc-studio.pages.dev,https://formc-studio.pages.dev"

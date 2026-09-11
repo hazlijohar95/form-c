@@ -1,128 +1,10 @@
-import { useMemo } from "react";
-import { checkSme, computeAsset, computeFormC, deemedInterest140B, earningsStripping, formatRM } from "@formc/engine";
-import type { FormCInput, WhtSection } from "@formc/engine";
-import { CHECKLIST, rmStrToSen, toAssetInput } from "../lib/types.js";
+import { doubleTotal, earningsStripping, formatRM } from "@formc/engine";
+import { CHECKLIST } from "../lib/types.js";
+import { rmStrToSen } from "../lib/rm.js";
+import { deemed140B, useComputation, whtSectionList } from "../lib/computation.js";
 import type { Engagement, RunRecord } from "../lib/types.js";
 
-const WHT_SECTIONS: WhtSection[] = ["s.109-interest", "s.109-royalty", "s.109B", "s.107A", "s.109A"];
-
-export function whtSectionList(): WhtSection[] {
-  return WHT_SECTIONS;
-}
-
-// s.140B deemed interest from related-account month-ends: peak debit ×
-// months in debit × market rate.
-export function deemed140B(eng: Engagement): { lines: { name: string; amountSen: number }[]; totalSen: number } {
-  const rate = Number(eng.deemedRatePct);
-  if (!Number.isFinite(rate) || rate <= 0) return { lines: [], totalSen: 0 };
-  const lines = eng.relatedAccounts.flatMap((a) => {
-    const nums = a.balances.map((b) => Number(b)).filter((n) => Number.isFinite(n));
-    if (nums.every((n) => n >= 0)) return [];
-    const peak = Math.max(0, ...nums.map((n) => -n));
-    const months = nums.filter((n) => n < 0).length;
-    const amt = deemedInterest140B(Math.round(peak * 100), months, rate);
-    return amt > 0 ? [{ name: a.name || "related account", amountSen: amt }] : [];
-  });
-  return { lines, totalSen: lines.reduce((a, l) => a + l.amountSen, 0) };
-}
-
-export function useComputation(eng: Engagement): {
-  result: ReturnType<typeof computeFormC>;
-  assetRows: ReturnType<typeof computeAsset>[];
-} {
-  return useMemo(() => {
-    const sme = {
-      paidUpCapitalRM: Number(eng.paidUpRM) || 0,
-      grossBusinessIncomeRM: Number(eng.grossIncRM) || 0,
-      controlsLargeCompany: eng.controlsLarge,
-      controlledByLargeCompany: eng.controlledByLarge,
-      foreignOwnershipPct: Number(eng.foreignPct) || 0,
-      isResident: true,
-    };
-    const smeRes = checkSme(sme);
-    let smallUsed = 0;
-    const assetRows = eng.assets.map((a) => {
-      const r = computeAsset(toAssetInput(a), smeRes.qualifies, smallUsed);
-      if (a.category === "small-value") smallUsed += rmStrToSen(a.costRM);
-      return r;
-    });
-    const o = eng.schedule3;
-    const useOverride = o.enabled;
-    const input: FormCInput = {
-      ya: eng.ya,
-      companyName: eng.companyName,
-      regNo: eng.regNo,
-      fyeFrom: eng.fyeFrom,
-      fyeTo: eng.fyeTo,
-      sme,
-      netProfitSen: rmStrToSen(eng.netProfitRM),
-      addBacks: eng.addBacks.map((l) => ({
-        description: l.description || "(unnamed)",
-        amountSen: rmStrToSen(l.amountRM),
-        section: l.section,
-      })),
-      credits: eng.credits.map((l) => ({
-        description: l.description || "(unnamed)",
-        amountSen: rmStrToSen(l.amountRM),
-        basis: l.basis,
-      })),
-      doubleDeductions: eng.doubleDeductions.map((l) => ({
-        description: l.description || "(unnamed)",
-        amountSen: rmStrToSen(l.amountRM),
-        authority: l.authority,
-        code: l.code || undefined,
-        capSen: l.capRM === "" ? undefined : rmStrToSen(l.capRM),
-      })),
-      assets: eng.assets.map(toAssetInput),
-      nonBusiness: eng.nonBusiness.map((l) => ({ label: l.label || "(unnamed)", amountSen: rmStrToSen(l.amountRM) })),
-      whtLines: eng.whtLines.map((l) => ({
-        description: l.description || "(unnamed)",
-        amountSen: rmStrToSen(l.amountRM),
-        section: (WHT_SECTIONS.includes(l.section as WhtSection) ? l.section : "s.109B") as WhtSection,
-        remitted: l.remitted,
-      })),
-      deemedInterestSen: deemed140B(eng).totalSen,
-      relatedInterestSen: rmStrToSen(eng.relatedInterestRM),
-      taxEbitdaSen: rmStrToSen(eng.taxEbitdaRM),
-      raQeSen: rmStrToSen(eng.raQeRM),
-      raBfSen: rmStrToSen(eng.raBfRM),
-      itaAllowanceSen: rmStrToSen(eng.itaAllowanceRM),
-      itaBfSen: rmStrToSen(eng.itaBfRM),
-      itaPct: eng.itaPct === "100" ? 100 : 70,
-      pioneerExemptSen: rmStrToSen(eng.pioneerExemptRM),
-      groupSurrenderedSen: rmStrToSen(eng.groupSurrenderedRM),
-      groupSurrendererLossSen: rmStrToSen(eng.groupSurrendererLossRM),
-      groupConditionsMet: eng.groupConditionsMet,
-      isIhc: eng.isIhc,
-      schedule3Override: useOverride
-        ? {
-            caSen: rmStrToSen(o.caRM),
-            balancingChargeSen: rmStrToSen(o.bcRM),
-            balancingAllowanceSen: rmStrToSen(o.baRM),
-            residualBfSen: rmStrToSen(o.reBfRM),
-            additionsSen: rmStrToSen(o.additionsRM),
-            disposedReSen: rmStrToSen(o.disposedReRM),
-            residualCfSen: rmStrToSen(o.reCfRM),
-            note: o.note || "external schedule",
-          }
-        : undefined,
-      donationsSen: rmStrToSen(eng.donationsRM),
-      zakatSen: rmStrToSen(eng.zakatRM),
-      currentLossOffsetSen: rmStrToSen(eng.currentLossOffsetRM),
-      bfLosses: eng.bfLosses.map((l) => ({
-        yearOfAssessment: Number(l.ya) || 0,
-        amountBfSen: rmStrToSen(l.amountRM),
-      })),
-      unabsorbedCaBfSen: rmStrToSen(eng.unabsorbedCaBfRM),
-      cp204EstimateSen: rmStrToSen(eng.cp204EstimateRM),
-      cp204PaidSen: rmStrToSen(eng.cp204PaidRM),
-      whtCreditSen: rmStrToSen(eng.whtCreditRM),
-      bilateralCreditSen: rmStrToSen(eng.bilateralCreditRM),
-      priorCreditSen: eng.priorCreditVerified ? rmStrToSen(eng.priorCreditRM) : 0,
-    };
-    return { result: computeFormC(input), assetRows };
-  }, [eng]);
-}
+export { whtSectionList };
 
 export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void }): JSX.Element {
   const { eng } = props;
@@ -136,12 +18,42 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
       ya: eng.ya,
       company: eng.companyName,
       regNo: eng.regNo,
-      chargeableIncomeSen: result.chargeableSen,
-      grossTaxSen: result.grossTaxSen,
-      taxPayableSen: result.taxPayableSen,
-      cp204PenaltySen: result.cp204PenaltySen,
+      fyeFrom: eng.fyeFrom,
+      fyeTo: eng.fyeTo,
       smeQualifies: result.smeQualifies,
       filingDeadline: result.filingDeadline,
+      statutoryBeforeIncentivesSen: result.statutoryBeforeIncentivesSen,
+      nonBusiness: eng.nonBusiness.map((l) => ({
+        label: l.label,
+        amountSen: rmStrToSen(l.amountRM),
+      })),
+      chargeableIncomeSen: result.chargeableSen,
+      grossTaxSen: result.grossTaxSen,
+      cp204PaidSen: rmStrToSen(eng.cp204PaidRM),
+      taxPayableSen: result.taxPayableSen,
+      netProfitSen: rmStrToSen(eng.netProfitRM),
+      addBacks: eng.addBacks.map((l) => ({
+        description: l.description,
+        amountSen: rmStrToSen(l.amountRM),
+        section: l.section,
+      })),
+      credits: eng.credits.map((l) => ({
+        description: l.description,
+        amountSen: rmStrToSen(l.amountRM),
+        basis: l.basis,
+      })),
+      totalCaSen: result.totalCaSen,
+      balancingChargeSen: result.balancingChargeSen,
+      residualCfSen: result.residualCfSen,
+      doubleDeductions: eng.doubleDeductions.map((l) => ({
+        description: l.description,
+        amountSen: rmStrToSen(l.amountRM),
+        code: l.code,
+        authority: l.authority,
+      })),
+      directors: eng.directors,
+      shareholders: eng.shareholders,
+      declarations: eng.declarations,
       checklist: CHECKLIST.map((c, i) => ({ item: c, done: eng.checks[i] })),
     },
     null,
@@ -229,7 +141,7 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
                   Less: {l.description} (double){" "}
                   <span className="hint">[{l.code ? `D1 ${l.code}, ` : ""}{l.authority || "s.34"}{l.capRM ? `, cap RM${l.capRM}` : ""}]</span>
                 </td>
-                <td className="rm">({formatRM(Math.min(rmStrToSen(l.amountRM), l.capRM === "" ? rmStrToSen(l.amountRM) : rmStrToSen(l.capRM)))})</td>
+                <td className="rm">({formatRM(doubleTotal([{ description: l.description, amountSen: rmStrToSen(l.amountRM), authority: l.authority, capSen: l.capRM === "" ? undefined : rmStrToSen(l.capRM) }]))})</td>
               </tr>
             ))}
             <tr>
@@ -325,8 +237,8 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
                 <td className="rm">{formatRM(Math.max(0, rmStrToSen(l.amountRM)))}</td>
               </tr>
             ))}
-            {deemed.lines.map((l) => (
-              <tr key={l.name}>
+            {deemed.lines.map((l, i) => (
+              <tr key={`${l.name}-${i}`}>
                 <td>Add: deemed interest — {l.name} <span className="hint">[s.140B]</span></td>
                 <td className="rm">{formatRM(l.amountSen)}</td>
               </tr>

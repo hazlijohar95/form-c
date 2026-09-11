@@ -7,8 +7,10 @@ are synthetic.
 
 ## Storage now / later
 
-- Now: versioned JSON in localStorage (`formc.engagements.v2`), migrated
-  forward (`migrateV1`). No silent field drops — migration maps old fields.
+- Now: D1 (`formc-engagements.engagements`) as source of truth via
+  `workers/api`, TanStack Query in `apps/web` with `localStorage`
+  (`formc.engagements.v4`) as offline fallback. Topbar shows ○ local vs
+  ● server; “Push local → D1” migrates browser records.
 - Later: the model is plain records with string IDs, ISO timestamps, and
   integer-sen money — portable to SQLite (Tauri/opencode-desktop pattern) or
   Supabase Postgres without reshaping. Money stays integer in every backend.

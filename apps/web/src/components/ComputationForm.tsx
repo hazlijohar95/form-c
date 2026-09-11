@@ -1,12 +1,19 @@
 import type { AddBackSection } from "@formc/engine";
-import { CATEGORIES, SECTIONS, uid } from "../lib/types.js";
+import { WHT_SECTIONS, isWhtSection } from "@formc/engine";
+import { SECTIONS } from "../lib/types.js";
+import { AssetTable } from "./AssetTable.js";
+import { LineTable } from "./LineTable.js";
+import { RmInput } from "./RmInput.js";
+import { uid, updateById, removeById } from "../lib/lists.js";
 import type {
   AddBackLine,
-  AssetLine,
   CreditLine,
   DoubleDeductionLine,
   Engagement,
   LossLine,
+  NonQualifyingLine,
+  SourceLine,
+  WhtLineUI,
 } from "../lib/types.js";
 
 type Patch = (p: Partial<Engagement>) => void;
@@ -30,58 +37,40 @@ function Text(props: {
 }
 
 function AddBackEditor(props: { lines: AddBackLine[]; patch: Patch }): JSX.Element {
-  const set = (id: string, p: Partial<AddBackLine>): void =>
-    props.patch({ addBacks: props.lines.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
-    <div>
-      {props.lines.map((l) => (
-        <div key={l.id} className="linerow">
-          <input
-            value={l.description}
-            onChange={(e) => set(l.id, { description: e.target.value })}
-            placeholder="Description"
-            style={{ flex: 3 }}
-          />
-          <input
-            className="num"
-            value={l.amountRM}
-            onChange={(e) => set(l.id, { amountRM: e.target.value })}
-            placeholder="RM"
-            style={{ flex: 1 }}
-          />
-          <select
-            value={l.section}
-            onChange={(e) => set(l.id, { section: e.target.value as AddBackSection })}
-            style={{ flex: 1.4 }}
-          >
-            {SECTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn ghost"
-            onClick={() => props.patch({ addBacks: props.lines.filter((x) => x.id !== l.id) })}
-          >
-            ×
-          </button>
-        </div>
-      ))}
-      <button
-        className="btn"
-        onClick={() =>
-          props.patch({
-            addBacks: [
-              ...props.lines,
-              { id: uid(), description: "", amountRM: "0", section: "s.39(1)(d)" },
-            ],
-          })
-        }
-      >
-        + Add-back line
-      </button>
-    </div>
+    <LineTable<AddBackLine>
+      data={props.lines}
+      onUpdate={(id, p) => props.patch({ addBacks: updateById(props.lines, id, p) })}
+      onRemove={(id) => props.patch({ addBacks: removeById(props.lines, id) })}
+      onAdd={() =>
+        props.patch({
+          addBacks: [...props.lines, { id: uid(), description: "", amountRM: "0", section: "s.39(1)(d)" }],
+        })
+      }
+      addLabel="+ Add-back line"
+      columns={[
+        {
+          header: "Description",
+          cell: (l, set) => (
+            <input value={l.description} onChange={(e) => set({ description: e.target.value })} placeholder="Description" style={{ width: "100%" }} />
+          ),
+        },
+        {
+          header: "RM",
+          cell: (l, set) => <RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />,
+        },
+        {
+          header: "Section",
+          cell: (l, set) => (
+            <select value={l.section} onChange={(e) => set({ section: e.target.value as AddBackSection })}>
+              {SECTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -148,7 +137,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
 
       <div className="card">
         <h3>Capital allowance schedule — one row per asset</h3>
-        <AssetEditor assets={eng.assets} patch={patch} />
+        <AssetTable assets={eng.assets} patch={patch} />
       </div>
 
       <div className="card">
@@ -263,175 +252,116 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
 
 function NonQualifyingEditor(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
-  const set = (id: string, p: Partial<import("../lib/types.js").NonQualifyingLine>): void =>
-    patch({ nonQualifying: eng.nonQualifying.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
-    <div>
-      {eng.nonQualifying.map((l) => (
-        <div key={l.id} className="linerow">
-          <input value={l.description} onChange={(e) => set(l.id, { description: e.target.value })} placeholder="e.g. Renovation fit-out" style={{ flex: 2 }} />
-          <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM" style={{ flex: 1 }} />
-          <input value={l.reason} onChange={(e) => set(l.id, { reason: e.target.value })} placeholder="Why not plant" style={{ flex: 2 }} />
-          <button className="btn ghost" onClick={() => patch({ nonQualifying: eng.nonQualifying.filter((x) => x.id !== l.id) })}>×</button>
-        </div>
-      ))}
-      <button className="btn" onClick={() => patch({ nonQualifying: [...eng.nonQualifying, { id: uid(), description: "", amountRM: "0", reason: "" }] })}>+ Non-qualifying item</button>
-    </div>
+    <LineTable<NonQualifyingLine>
+      data={eng.nonQualifying}
+      onUpdate={(id, p) => patch({ nonQualifying: updateById(eng.nonQualifying, id, p) })}
+      onRemove={(id) => patch({ nonQualifying: removeById(eng.nonQualifying, id) })}
+      onAdd={() => patch({ nonQualifying: [...eng.nonQualifying, { id: uid(), description: "", amountRM: "0", reason: "" }] })}
+      addLabel="+ Non-qualifying item"
+      columns={[
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} placeholder="e.g. Renovation fit-out" style={{ width: "100%" }} />) },
+        { header: "RM", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+        { header: "Why not plant", cell: (l, set) => (<input value={l.reason} onChange={(e) => set({ reason: e.target.value })} placeholder="Why not plant" style={{ width: "100%" }} />) },
+      ]}
+    />
   );
 }
 
 function CreditEditor(props: { lines: CreditLine[]; patch: Patch }): JSX.Element {
-  const set = (id: string, p: Partial<CreditLine>): void =>
-    props.patch({ credits: props.lines.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
-    <div>
-      {props.lines.map((l) => (
-        <div key={l.id} className="linerow">
-          <input value={l.description} onChange={(e) => set(l.id, { description: e.target.value })} placeholder="e.g. Single-tier dividends" style={{ flex: 3 }} />
-          <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM" style={{ flex: 1 }} />
-          <input value={l.basis} onChange={(e) => set(l.id, { basis: e.target.value })} placeholder="Basis" style={{ flex: 1.4 }} />
-          <button className="btn ghost" onClick={() => props.patch({ credits: props.lines.filter((x) => x.id !== l.id) })}>×</button>
-        </div>
-      ))}
-      <button className="btn" onClick={() => props.patch({ credits: [...props.lines, { id: uid(), description: "", amountRM: "0", basis: "" }] })}>+ Credit line</button>
-    </div>
+    <LineTable<CreditLine>
+      data={props.lines}
+      onUpdate={(id, p) => props.patch({ credits: updateById(props.lines, id, p) })}
+      onRemove={(id) => props.patch({ credits: removeById(props.lines, id) })}
+      onAdd={() => props.patch({ credits: [...props.lines, { id: uid(), description: "", amountRM: "0", basis: "" }] })}
+      addLabel="+ Credit line"
+      columns={[
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} placeholder="e.g. Single-tier dividends" style={{ width: "100%" }} />) },
+        { header: "RM", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+        { header: "Basis", cell: (l, set) => (<input value={l.basis} onChange={(e) => set({ basis: e.target.value })} placeholder="Basis" style={{ width: "100%" }} />) },
+      ]}
+    />
   );
 }
 
 function DoubleEditor(props: { lines: DoubleDeductionLine[]; patch: Patch }): JSX.Element {
-  const set = (id: string, p: Partial<DoubleDeductionLine>): void =>
-    props.patch({ doubleDeductions: props.lines.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
     <div>
-      {props.lines.map((l) => (
-        <div key={l.id}>
-          <div className="linerow">
-            <input value={l.description} onChange={(e) => set(l.id, { description: e.target.value })} placeholder="e.g. Statutory audit expenditure" style={{ flex: 3 }} />
-            <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM" style={{ flex: 1 }} />
-            <button className="btn ghost" onClick={() => props.patch({ doubleDeductions: props.lines.filter((x) => x.id !== l.id) })}>×</button>
-          </div>
-          <div className="linerow">
-            <input value={l.code} onChange={(e) => set(l.id, { code: e.target.value })} placeholder="D1 code (132/157)" style={{ flex: 1 }} />
-            <input value={l.authority} onChange={(e) => set(l.id, { authority: e.target.value })} placeholder="P.U.(A) reference" style={{ flex: 2 }} />
-            <input className="num" value={l.capRM} onChange={(e) => set(l.id, { capRM: e.target.value })} placeholder="Cap RM (blank=none)" style={{ flex: 1 }} />
-          </div>
-        </div>
-      ))}
-      <button className="btn" onClick={() => props.patch({ doubleDeductions: [...props.lines, { id: uid(), description: "", amountRM: "0", authority: "", code: "", capRM: "" }] })}>+ Double deduction</button>
+      <LineTable<DoubleDeductionLine>
+        data={props.lines}
+        onUpdate={(id, p) => props.patch({ doubleDeductions: updateById(props.lines, id, p) })}
+        onRemove={(id) => props.patch({ doubleDeductions: removeById(props.lines, id) })}
+        onAdd={() => props.patch({ doubleDeductions: [...props.lines, { id: uid(), description: "", amountRM: "0", authority: "", code: "", capRM: "" }] })}
+        addLabel="+ Double deduction"
+        columns={[
+          { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} placeholder="e.g. Statutory audit expenditure" style={{ width: "100%" }} />) },
+          { header: "RM", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+          { header: "D1 code", cell: (l, set) => (<input value={l.code} onChange={(e) => set({ code: e.target.value })} placeholder="132/157" style={{ width: "100%" }} />) },
+          { header: "Authority", cell: (l, set) => (<input value={l.authority} onChange={(e) => set({ authority: e.target.value })} placeholder="P.U.(A)" style={{ width: "100%" }} />) },
+          { header: "Cap RM", cell: (l, set) => (<RmInput value={l.capRM} on={(v) => set({ capRM: v })} placeholder="blank=none" />) },
+        ]}
+      />
     </div>
   );
 }
 
 function SourceEditor(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
-  const set = (id: string, p: Partial<import("../lib/types.js").SourceLine>): void =>
-    patch({ nonBusiness: eng.nonBusiness.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
-    <div>
-      {eng.nonBusiness.map((l) => (
-        <div key={l.id} className="linerow">
-          <input value={l.label} onChange={(e) => set(l.id, { label: e.target.value })} placeholder="e.g. Interest (hibah) s.4(c)" style={{ flex: 3 }} />
-          <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM" style={{ flex: 1 }} />
-          <button className="btn ghost" onClick={() => patch({ nonBusiness: eng.nonBusiness.filter((x) => x.id !== l.id) })}>×</button>
-        </div>
-      ))}
-      <button className="btn" onClick={() => patch({ nonBusiness: [...eng.nonBusiness, { id: uid(), label: "", amountRM: "0" }] })}>+ Source</button>
-    </div>
+    <LineTable<SourceLine>
+      data={eng.nonBusiness}
+      onUpdate={(id, p) => patch({ nonBusiness: updateById(eng.nonBusiness, id, p) })}
+      onRemove={(id) => patch({ nonBusiness: removeById(eng.nonBusiness, id) })}
+      onAdd={() => patch({ nonBusiness: [...eng.nonBusiness, { id: uid(), label: "", amountRM: "0" }] })}
+      addLabel="+ Source"
+      columns={[
+        { header: "Source", cell: (l, set) => (<input value={l.label} onChange={(e) => set({ label: e.target.value })} placeholder="e.g. Interest (hibah) s.4(c)" style={{ width: "100%" }} />) },
+        { header: "RM", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+      ]}
+    />
   );
 }
 
-const WHT_OPTS = ["s.109-interest", "s.109-royalty", "s.109B", "s.107A", "s.109A"];
+const WHT_OPTS = WHT_SECTIONS;
 
 function WhtEditor(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
-  const set = (id: string, p: Partial<import("../lib/types.js").WhtLineUI>): void =>
-    patch({ whtLines: eng.whtLines.map((l) => (l.id === id ? { ...l, ...p } : l)) });
   return (
-    <div>
-      {eng.whtLines.map((l) => (
-        <div key={l.id} className="linerow">
-          <input value={l.description} onChange={(e) => set(l.id, { description: e.target.value })} placeholder="e.g. Management fee to SG" style={{ flex: 3 }} />
-          <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM" style={{ flex: 1 }} />
-          <select value={l.section} onChange={(e) => set(l.id, { section: e.target.value })} style={{ flex: 1.2 }}>
+    <LineTable<WhtLineUI>
+      data={eng.whtLines}
+      onUpdate={(id, p) => patch({ whtLines: updateById(eng.whtLines, id, p) })}
+      onRemove={(id) => patch({ whtLines: removeById(eng.whtLines, id) })}
+      onAdd={() => patch({ whtLines: [...eng.whtLines, { id: uid(), description: "", amountRM: "0", section: "s.109B", remitted: true }] })}
+      addLabel="+ Payment"
+      columns={[
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} placeholder="e.g. Management fee to SG" style={{ width: "100%" }} />) },
+        { header: "RM", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM" />) },
+        { header: "Section", cell: (l, set) => (
+          <select value={l.section} onChange={(e) => { const v = e.target.value; if (isWhtSection(v)) set({ section: v }); }}>
             {WHT_OPTS.map((s) => (<option key={s} value={s}>{s}</option>))}
           </select>
-          <label className="check"><input type="checkbox" checked={l.remitted} onChange={(e) => set(l.id, { remitted: e.target.checked })} /><span>Remitted</span></label>
-          <button className="btn ghost" onClick={() => patch({ whtLines: eng.whtLines.filter((x) => x.id !== l.id) })}>×</button>
-        </div>
-      ))}
-      <button className="btn" onClick={() => patch({ whtLines: [...eng.whtLines, { id: uid(), description: "", amountRM: "0", section: "s.109B", remitted: true }] })}>+ Payment</button>
-    </div>
+        ) },
+        { header: "Remitted", cell: (l, set) => (
+          <label className="check"><input type="checkbox" checked={l.remitted} onChange={(e) => set({ remitted: e.target.checked })} /><span>Yes</span></label>
+        ) },
+      ]}
+    />
   );
 }
 
-function LossEditor(props: { lines: LossLine[]; patch: Patch }): JSX.Element {  const set = (id: string, p: Partial<LossLine>): void =>
-    props.patch({ bfLosses: props.lines.map((l) => (l.id === id ? { ...l, ...p } : l)) });
+function LossEditor(props: { lines: LossLine[]; patch: Patch }): JSX.Element {
   return (
-    <div>
-      {props.lines.map((l) => (
-        <div key={l.id} className="linerow">
-          <input value={l.ya} onChange={(e) => set(l.id, { ya: e.target.value })} placeholder="YA of origin" style={{ flex: 1 }} />
-          <input className="num" value={l.amountRM} onChange={(e) => set(l.id, { amountRM: e.target.value })} placeholder="RM b/f" style={{ flex: 2 }} />
-          <button className="btn ghost" onClick={() => props.patch({ bfLosses: props.lines.filter((x) => x.id !== l.id) })}>×</button>
-        </div>
-      ))}
-      <button className="btn" onClick={() => props.patch({ bfLosses: [...props.lines, { id: uid(), ya: "2024", amountRM: "0" }] })}>+ Loss year</button>
-    </div>
-  );
-}
-
-function AssetEditor(props: { assets: AssetLine[]; patch: Patch }): JSX.Element {
-  const set = (id: string, p: Partial<AssetLine>): void =>
-    props.patch({ assets: props.assets.map((a) => (a.id === id ? { ...a, ...p } : a)) });
-  return (
-    <div>
-      {props.assets.map((a) => (
-        <div key={a.id} className="assetbox">
-          <div className="linerow">
-            <input value={a.description} onChange={(e) => set(a.id, { description: e.target.value })} placeholder="Asset description" style={{ flex: 3 }} />
-            <select value={a.category} onChange={(e) => set(a.id, { category: e.target.value as AssetLine["category"] })} style={{ flex: 2 }}>
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-            <button className="btn ghost" onClick={() => props.patch({ assets: props.assets.filter((x) => x.id !== a.id) })}>×</button>
-          </div>
-          <div className="row3">
-            <div><label className="f">Original cost / QE (RM)</label><input className="num" value={a.costRM} onChange={(e) => set(a.id, { costRM: e.target.value })} /></div>
-            <div><label className="f">Allowances to prior YA (RM)</label><input className="num" value={a.allowancesBfRM} onChange={(e) => set(a.id, { allowancesBfRM: e.target.value })} disabled={a.isNew} /></div>
-            <div><label className="f">Months in use (blank=12)</label><input className="num" value={a.monthsInUse} onChange={(e) => set(a.id, { monthsInUse: e.target.value })} /></div>
-          </div>
-          <div className="row3">
-            <div><label className="f">Disposal price (blank=held)</label><input className="num" value={a.disposalPriceRM} onChange={(e) => set(a.id, { disposalPriceRM: e.target.value })} /></div>
-            <div><label className="f">Motor total cost (RM)</label><input className="num" value={a.motorTotalCostRM} onChange={(e) => set(a.id, { motorTotalCostRM: e.target.value })} disabled={!a.isMotorNonCommercial} /></div>
-            <div><label className="f">Qualifying % (Para 66)</label><input className="num" value={a.qualifyingPct} onChange={(e) => set(a.id, { qualifyingPct: e.target.value })} disabled={a.category !== "iba-3"} /></div>
-          </div>
-          <div className="row2">
-            <div className="checkcol">
-              <label className="check"><input type="checkbox" checked={a.isNew} onChange={(e) => set(a.id, { isNew: e.target.checked })} /><span>New</span></label>
-              <label className="check"><input type="checkbox" checked={a.isHirePurchase} onChange={(e) => set(a.id, { isHirePurchase: e.target.checked })} /><span>Hire purchase</span></label>
-              <label className="check"><input type="checkbox" checked={a.isMotorNonCommercial} onChange={(e) => set(a.id, { isMotorNonCommercial: e.target.checked })} /><span>Non-commercial motor</span></label>
-              <label className="check"><input type="checkbox" checked={a.isCommercialVehicle} onChange={(e) => set(a.id, { isCommercialVehicle: e.target.checked })} /><span>Commercial (no cap)</span></label>
-            </div>
-          </div>
-          {a.isHirePurchase && (
-            <div className="row2">
-              <div><label className="f">HP capital paid THIS period (RM)</label><input className="num" value={a.hpPaidPeriodRM} onChange={(e) => set(a.id, { hpPaidPeriodRM: e.target.value })} /></div>
-              <div><label className="f">HP cumulative capital paid (RM)</label><input className="num" value={a.hpPaidTotalRM} onChange={(e) => set(a.id, { hpPaidTotalRM: e.target.value })} /></div>
-            </div>
-          )}
-        </div>
-      ))}
-      <button
-        className="btn"
-        onClick={() =>
-          props.patch({
-            assets: [...props.assets, { id: uid(), description: "", category: "cat2-14", costRM: "0", allowancesBfRM: "0", isNew: true, isHirePurchase: false, hpPaidPeriodRM: "", hpPaidTotalRM: "", isMotorNonCommercial: false, motorTotalCostRM: "", isCommercialVehicle: false, monthsInUse: "", disposalPriceRM: "", qualifyingPct: "100" }],
-          })
-        }
-      >
-        + Asset
-      </button>
-    </div>
+    <LineTable<LossLine>
+      data={props.lines}
+      onUpdate={(id, p) => props.patch({ bfLosses: updateById(props.lines, id, p) })}
+      onRemove={(id) => props.patch({ bfLosses: removeById(props.lines, id) })}
+      onAdd={() => props.patch({ bfLosses: [...props.lines, { id: uid(), ya: "2024", amountRM: "0" }] })}
+      addLabel="+ Loss year"
+      columns={[
+        { header: "YA of origin", cell: (l, set) => (<input value={l.ya} onChange={(e) => set({ ya: e.target.value })} placeholder="YA" style={{ width: "100%" }} />) },
+        { header: "RM b/f", cell: (l, set) => (<RmInput value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="RM b/f" />) },
+      ]}
+    />
   );
 }

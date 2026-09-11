@@ -1,8 +1,7 @@
 import type { Sen } from "./money.js";
 import { taxOnBands } from "./money.js";
-import { CAPS, flatBand, smeBands } from "./rates.js";
-import { doubleTotal } from "./adjustedIncome.js";
-import type { DoubleDeduction } from "./adjustedIncome.js";
+import { CAPS } from "./rates.js";
+import { smeBandsFor } from "./sme.js";
 import { applyIncentives } from "./incentives.js";
 
 export interface LossYear {
@@ -63,6 +62,8 @@ export interface ComputationResult {
   itaAbsorbedSen: Sen;
   itaCfSen: Sen;
   groupReliefSen: Sen;
+  itaPctApplied: number;
+  findings: string[];
 }
 
 export function computeChargeable(input: ComputationInput): ComputationResult {
@@ -89,13 +90,18 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
   );
 
   // Incentives absorb against business statutory (after CA/BC).
+  // itaPct sanitised at this Seam: only 70 or 100 recognised.
+  const findings: string[] = [];
+  const itaPctApplied = input.itaPct === 100 ? 100 : 70;
+  if (input.itaPct !== 70 && input.itaPct !== 100)
+    findings.push(`ITA rate ${input.itaPct}% not recognised — 70% applied`);
   const preIncentive = statutoryBusiness;
   const inc = applyIncentives(statutoryBusiness, {
     raQeSen: input.raQeSen,
     raBfSen: input.raBfSen,
     itaAllowanceSen: input.itaAllowanceSen,
     itaBfSen: input.itaBfSen,
-    itaPct: input.itaPct,
+    itaPct: itaPctApplied,
   });
   statutoryBusiness = inc.afterSen;
 
@@ -116,10 +122,14 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
   let remaining = afterCurrentLoss;
   let lossUsed = 0;
   const lossCf: LossYear[] = [];
+  let expiredDropped = false;
   const businessOnlyBase = statutoryBusiness; // B/F losses cannot shelter non-business
   for (const ly of bfLossList) {
     const age = input.currentYa - ly.yearOfAssessment;
-    if (age > CAPS.lossCarryYears || age < 0) continue; // expired or future — drop
+    if (age > CAPS.lossCarryYears || age < 0) {
+      expiredDropped = true;
+      continue; // expired or future — drop
+    }
     if (remaining <= 0) {
       lossCf.push(ly);
       continue;
@@ -137,13 +147,22 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
   const chargeableExact = Math.max(0, totalIncome);
   // Form C works in whole ringgit — truncate down, tax on the truncated figure.
   const chargeable = Math.floor(chargeableExact / 100) * 100;
-  const bands = input.isSme && !input.isIhc ? smeBands() : flatBand();
+  const bands = smeBandsFor(input.isSme, input.isIhc, input.currentYa);
   const grossTax = taxOnBands(chargeable, bands);
   const taxPayable = Math.max(
     0,
     grossTax - input.bilateralCreditSen - input.whtCreditSen - input.cp204PaidSen
   );
   const netCash = taxPayable - input.priorCreditSen;
+
+  if (donationsAllowed < input.donationsSen)
+    findings.push("Donations capped at 10% of aggregate income");
+  if (zakatAllowed < input.zakatSen)
+    findings.push("Company zakat capped at 2.5% of aggregate income");
+  if (expiredDropped)
+    findings.push("Expired B/F loss year dropped (10-year limit, s.44(5A))");
+  if (unabsorbedCaCf > 0)
+    findings.push("Para 75 bit: part of CA unabsorbed, carried forward same source");
 
   return {
     statutoryBusinessSen: statutoryBusiness,
@@ -165,6 +184,8 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     itaAbsorbedSen: inc.result.itaAbsorbedSen,
     itaCfSen: inc.result.itaCfSen,
     groupReliefSen: groupRelief,
+    itaPctApplied,
+    findings,
   };
 }
 

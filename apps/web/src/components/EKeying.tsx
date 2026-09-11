@@ -1,7 +1,9 @@
 import { formatRM } from "@formc/engine";
-import { defaultDeclarations, rmStrToSen } from "../lib/types.js";
+import { defaultDeclarations } from "../lib/types.js";
+import { rmStrToSen } from "../lib/rm.js";
 import type { Engagement } from "../lib/types.js";
-import { deemed140B, useComputation } from "./Report.js";
+import { deemed140B, useComputation } from "../lib/computation.js";
+import { MyTaxCoverage } from "./MyTaxCoverage.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
@@ -29,6 +31,7 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
 
   return (
     <div>
+      <MyTaxCoverage eng={eng} patch={patch} />
       <div className="card">
         <h3>e-C keying — screen order, current vs filed prior year</h3>
         <p className="hint">
@@ -75,8 +78,8 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             {eng.nonBusiness.map((l) => (
               <KRow key={l.id} label={l.label} cur={formatRM(rmStrToSen(l.amountRM))} prior="" />
             ))}
-            {deemed.lines.map((l) => (
-              <KRow key={l.name} label={`Deemed interest s.140B — ${l.name}`} cur={formatRM(l.amountSen)} prior="" />
+            {deemed.lines.map((l, i) => (
+              <KRow key={`${l.name}-${i}`} label={`Deemed interest s.140B — ${l.name}`} cur={formatRM(l.amountSen)} prior="" />
             ))}
             <KRow label="CHARGEABLE INCOME" cur={formatRM(result.chargeableSen)} prior={py.ciRM ? `RM ${py.ciRM}` : ""} />
             <KRow label="Tax" cur={formatRM(result.grossTaxSen)} prior={py.taxRM ? `RM ${py.taxRM}` : ""} />
