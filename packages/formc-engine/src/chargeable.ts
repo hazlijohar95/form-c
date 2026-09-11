@@ -3,6 +3,7 @@ import { taxOnBands } from "./money.js";
 import { CAPS, flatBand, smeBands } from "./rates.js";
 import { doubleTotal } from "./adjustedIncome.js";
 import type { DoubleDeduction } from "./adjustedIncome.js";
+import { applyIncentives } from "./incentives.js";
 
 export interface LossYear {
   yearOfAssessment: number;
@@ -31,10 +32,20 @@ export interface ComputationInput {
   priorCreditSen: Sen; // verified prior-YA overpayments held by LHDN
   balancingChargeSen: Sen; // Sch 3 Para 38, added after CA
   balancingAllowanceSen: Sen;
+  // Incentives & group (applied to business statutory before aggregation)
+  raQeSen: Sen;
+  raBfSen: Sen;
+  itaAllowanceSen: Sen;
+  itaBfSen: Sen;
+  itaPct: number;
+  pioneerExemptSen: Sen;
+  groupSurrenderedSen: Sen; // validated s.44A amount
+  isIhc: boolean; // s.60F: flat 24%, no offsets, no carry-forwards
 }
 
 export interface ComputationResult {
   statutoryBusinessSen: Sen;
+  statutoryBeforeIncentivesSen: Sen;
   aggregateSen: Sen;
   totalIncomeSen: Sen;
   chargeableExactSen: Sen;
@@ -47,14 +58,26 @@ export interface ComputationResult {
   lossUsedSen: Sen;
   lossCf: LossYear[];
   unabsorbedCaCfSen: Sen;
+  raAbsorbedSen: Sen;
+  raCfSen: Sen;
+  itaAbsorbedSen: Sen;
+  itaCfSen: Sen;
+  groupReliefSen: Sen;
   smeApplied: boolean;
 }
 
 export function computeChargeable(input: ComputationInput): ComputationResult {
+  // s.60F IHC: per-source only — brought-forward CA, current losses and
+  // brought-forward losses all unavailable; flat rate applied downstream.
+  const unabsorbedBf = input.isIhc ? 0 : input.unabsorbedCaBfSen;
+  const currentLoss = input.isIhc ? 0 : input.currentLossOffsetSen;
+  const bfLossList = input.isIhc ? [] : input.bfLosses;
+  const groupRelief = input.isIhc ? 0 : input.groupSurrenderedSen;
+
   // Statutory business income, floor NIL per source (Sch 3 Para 75:
   // CA cannot create a loss — excess becomes unabsorbed CA, same source).
   let statutoryBusiness =
-    input.adjustedIncomeSen - input.currentCaSen - input.unabsorbedCaBfSen;
+    input.adjustedIncomeSen - input.currentCaSen - unabsorbedBf;
   let unabsorbedCaCf = 0;
   if (statutoryBusiness < 0) {
     unabsorbedCaCf = -statutoryBusiness;
@@ -66,6 +89,21 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     statutoryBusiness + input.balancingChargeSen - input.balancingAllowanceSen
   );
 
+  // s.60F IHC: per-source only — no offsets, no carry-forwards, flat rate.
+  // (handled via currentLoss / bfLossList / unabsorbedBf above)
+
+  // Incentives absorb against business statutory (after CA/BC).
+  const preIncentive = statutoryBusiness;
+  const inc = applyIncentives(statutoryBusiness, {
+    raQeSen: input.raQeSen,
+    raBfSen: input.raBfSen,
+    itaAllowanceSen: input.itaAllowanceSen,
+    itaBfSen: input.itaBfSen,
+    itaPct: input.itaPct,
+    pioneerExemptSen: 0,
+  });
+  statutoryBusiness = inc.afterSen;
+
   const totalStatutory =
     statutoryBusiness + input.nonBusiness.reduce((a, s) => a + Math.max(0, s.amountSen), 0);
 
@@ -75,17 +113,16 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
   const zakatAllowed = Math.min(input.zakatSen, Math.round(totalStatutory * CAPS.companyZakatPctOfAggregate));
   const aggregate = totalStatutory - donationsAllowed - zakatAllowed;
 
-  // Current-year loss set-off s.44(2) against all sources.
-  const afterCurrentLoss = Math.max(0, aggregate - input.currentLossOffsetSen);
+  // Current-year loss set-off s.44(2) against all sources, then s.44A
+  // group relief surrendered loss.
+  const afterCurrentLoss = Math.max(0, aggregate - currentLoss - groupRelief);
 
   // B/F losses: business income only, FIFO, 10-year expiry.
   let remaining = afterCurrentLoss;
   let lossUsed = 0;
   const lossCf: LossYear[] = [];
   const businessOnlyBase = statutoryBusiness; // B/F losses cannot shelter non-business
-  let businessRemaining = Math.max(0, businessOnlyBase - input.currentLossOffsetSen);
-  void businessRemaining;
-  for (const ly of input.bfLosses) {
+  for (const ly of bfLossList) {
     const age = input.currentYa - ly.yearOfAssessment;
     if (age > CAPS.lossCarryYears || age < 0) continue; // expired or future — drop
     if (remaining <= 0) {
@@ -101,11 +138,11 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     if (left > 0) lossCf.push({ yearOfAssessment: ly.yearOfAssessment, amountBfSen: left });
   }
 
-  const totalIncome = remaining;
+  const totalIncome = Math.max(0, remaining - input.pioneerExemptSen);
   const chargeableExact = Math.max(0, totalIncome);
   // Form C works in whole ringgit — truncate down, tax on the truncated figure.
   const chargeable = Math.floor(chargeableExact / 100) * 100;
-  const bands = input.isSme ? smeBands() : flatBand();
+  const bands = input.isSme && !input.isIhc ? smeBands() : flatBand();
   const grossTax = taxOnBands(chargeable, bands);
   const taxPayable = Math.max(
     0,
@@ -115,6 +152,7 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
 
   return {
     statutoryBusinessSen: statutoryBusiness,
+    statutoryBeforeIncentivesSen: preIncentive,
     aggregateSen: aggregate,
     totalIncomeSen: totalIncome,
     chargeableExactSen: chargeableExact,
@@ -127,6 +165,11 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
     lossUsedSen: lossUsed,
     lossCf,
     unabsorbedCaCfSen: unabsorbedCaCf,
+    raAbsorbedSen: inc.result.raAbsorbedSen,
+    raCfSen: inc.result.raCfSen,
+    itaAbsorbedSen: inc.result.itaAbsorbedSen,
+    itaCfSen: inc.result.itaCfSen,
+    groupReliefSen: groupRelief,
     smeApplied: input.isSme,
   };
 }

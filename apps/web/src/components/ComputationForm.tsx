@@ -165,6 +165,39 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
+        <h3>Incentives, group relief, IHC</h3>
+        <div className="row2">
+          <Text label="RA qualifying expenditure (RM)" value={eng.raQeRM} on={(v) => patch({ raQeRM: v })} mono />
+          <Text label="RA b/f (RM)" value={eng.raBfRM} on={(v) => patch({ raBfRM: v })} mono />
+        </div>
+        <div className="row3">
+          <Text label="ITA allowance (RM)" value={eng.itaAllowanceRM} on={(v) => patch({ itaAllowanceRM: v })} mono />
+          <Text label="ITA b/f (RM)" value={eng.itaBfRM} on={(v) => patch({ itaBfRM: v })} mono />
+          <div>
+            <label className="f">ITA absorbable %</label>
+            <select value={eng.itaPct} onChange={(e) => patch({ itaPct: e.target.value })}>
+              <option value="70">70% of statutory</option>
+              <option value="100">100% of statutory</option>
+            </select>
+          </div>
+        </div>
+        <Text label="Pioneer exempt income (RM)" value={eng.pioneerExemptRM} on={(v) => patch({ pioneerExemptRM: v })} mono />
+        <h4>Group relief s.44A (all conditions or nothing)</h4>
+        <div className="row3">
+          <Text label="Loss surrendered (RM)" value={eng.groupSurrenderedRM} on={(v) => patch({ groupSurrenderedRM: v })} mono />
+          <Text label="Surrenderer adjusted loss (RM)" value={eng.groupSurrendererLossRM} on={(v) => patch({ groupSurrendererLossRM: v })} mono />
+          <label className="check" style={{ alignSelf: "end" }}>
+            <input type="checkbox" checked={eng.groupConditionsMet} onChange={(e) => patch({ groupConditionsMet: e.target.checked })} />
+            <span>All s.44A conditions met</span>
+          </label>
+        </div>
+        <label className="check">
+          <input type="checkbox" checked={eng.isIhc} onChange={(e) => patch({ isIhc: e.target.checked })} />
+          <span>Investment holding company (s.60F — flat 24%, no offsets/carry-forwards)</span>
+        </label>
+      </div>
+
+      <div className="card">
         <h3>Losses, donations, credits, CP204</h3>
         <div className="row2">
           <Text label="Unabsorbed CA b/f (RM)" value={eng.unabsorbedCaBfRM} on={(v) => patch({ unabsorbedCaBfRM: v })} mono />
@@ -371,6 +404,9 @@ function AssetEditor(props: { assets: AssetLine[]; patch: Patch }): JSX.Element 
           <div className="row3">
             <div><label className="f">Disposal price (blank=held)</label><input className="num" value={a.disposalPriceRM} onChange={(e) => set(a.id, { disposalPriceRM: e.target.value })} /></div>
             <div><label className="f">Motor total cost (RM)</label><input className="num" value={a.motorTotalCostRM} onChange={(e) => set(a.id, { motorTotalCostRM: e.target.value })} disabled={!a.isMotorNonCommercial} /></div>
+            <div><label className="f">Qualifying % (Para 66)</label><input className="num" value={a.qualifyingPct} onChange={(e) => set(a.id, { qualifyingPct: e.target.value })} disabled={a.category !== "iba-3"} /></div>
+          </div>
+          <div className="row2">
             <div className="checkcol">
               <label className="check"><input type="checkbox" checked={a.isNew} onChange={(e) => set(a.id, { isNew: e.target.checked })} /><span>New</span></label>
               <label className="check"><input type="checkbox" checked={a.isHirePurchase} onChange={(e) => set(a.id, { isHirePurchase: e.target.checked })} /><span>Hire purchase</span></label>
@@ -390,7 +426,7 @@ function AssetEditor(props: { assets: AssetLine[]; patch: Patch }): JSX.Element 
         className="btn"
         onClick={() =>
           props.patch({
-            assets: [...props.assets, { id: uid(), description: "", category: "cat2-14", costRM: "0", allowancesBfRM: "0", isNew: true, isHirePurchase: false, hpPaidPeriodRM: "", hpPaidTotalRM: "", isMotorNonCommercial: false, motorTotalCostRM: "", isCommercialVehicle: false, monthsInUse: "", disposalPriceRM: "" }],
+            assets: [...props.assets, { id: uid(), description: "", category: "cat2-14", costRM: "0", allowancesBfRM: "0", isNew: true, isHirePurchase: false, hpPaidPeriodRM: "", hpPaidTotalRM: "", isMotorNonCommercial: false, motorTotalCostRM: "", isCommercialVehicle: false, monthsInUse: "", disposalPriceRM: "", qualifyingPct: "100" }],
           })
         }
       >

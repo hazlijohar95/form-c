@@ -39,6 +39,7 @@ export interface AssetLine {
   isCommercialVehicle: boolean;
   monthsInUse: string; // "" = 12
   disposalPriceRM: string; // "" = not disposed
+  qualifyingPct: string; // industrial building portion, default "100"
 }
 
 export interface NonQualifyingLine {
@@ -122,6 +123,30 @@ export interface LossLine {
   amountRM: string;
 }
 
+export interface Shareholder {
+  id: string;
+  name: string;
+  shares: string;
+  pct: string;
+}
+
+export interface Declaration {
+  key: string;
+  label: string;
+  value: boolean;
+}
+
+export function defaultDeclarations(): Declaration[] {
+  return [
+    { key: "controlled", label: "Controlled transactions (s.139/s.140A)", value: false },
+    { key: "ecommerce", label: "E-commerce income", value: false },
+    { key: "foreign", label: "Foreign income received in Malaysia", value: false },
+    { key: "d1", label: "Part D1 special deduction claim", value: false },
+    { key: "incentive", label: "Incentive (PS/ITA/RA) in force", value: false },
+    { key: "dormant", label: "Dormant basis period", value: false },
+  ];
+}
+
 export interface WhtLineUI {
   id: string;
   description: string;
@@ -158,6 +183,18 @@ export interface Engagement {
   relatedInterestRM: string; // controlled cross-border interest (s.140C)
   taxEbitdaRM: string;
   deemedRatePct: string; // market rate for s.140B on peak debits
+  raQeRM: string;
+  raBfRM: string;
+  itaAllowanceRM: string;
+  itaBfRM: string;
+  itaPct: string; // "70" | "100"
+  pioneerExemptRM: string;
+  groupSurrenderedRM: string;
+  groupSurrendererLossRM: string;
+  groupConditionsMet: boolean;
+  isIhc: boolean;
+  shareholders: Shareholder[];
+  declarations: Declaration[];
   nonQualifying: NonQualifyingLine[];
   registerTotalRM: string; // FA register grand total — control ties QE+nonQ+repairs
   schedule3: Schedule3Override;
@@ -247,6 +284,7 @@ export function blankEngagement(): Engagement {
         isCommercialVehicle: false,
         monthsInUse: "",
         disposalPriceRM: "",
+        qualifyingPct: "100",
       },
     ],
     nonQualifying: [],
@@ -268,6 +306,18 @@ export function blankEngagement(): Engagement {
     relatedInterestRM: "0",
     taxEbitdaRM: "0",
     deemedRatePct: "",
+    raQeRM: "0",
+    raBfRM: "0",
+    itaAllowanceRM: "0",
+    itaBfRM: "0",
+    itaPct: "70",
+    pioneerExemptRM: "0",
+    groupSurrenderedRM: "0",
+    groupSurrendererLossRM: "0",
+    groupConditionsMet: false,
+    isIhc: false,
+    shareholders: [],
+    declarations: defaultDeclarations(),
     donationsRM: "0",
     zakatRM: "0",
     currentLossOffsetRM: "0",
@@ -309,7 +359,8 @@ export function loadAll(): Engagement[] {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed as Engagement[];
+    // Shallow-normalize so older v4 records gain new fields with defaults.
+    return (parsed as Record<string, unknown>[]).map((e) => ({ ...blankEngagement(), ...e })) as Engagement[];
   } catch {
     return [];
   }
@@ -325,12 +376,14 @@ export function saveAll(list: Engagement[]): void {
 }
 
 export function toAssetInput(a: AssetLine): AssetInput {
+  const pct = Number(a.qualifyingPct);
   return {
     id: a.id,
     description: a.description,
     category: a.category,
     costSen: rmStrToSen(a.costRM),
     allowancesBfSen: rmStrToSen(a.allowancesBfRM),
+    qualifyingPct: Number.isFinite(pct) && pct > 0 ? Math.min(100, pct) : 100,
     isNew: a.isNew,
     isHirePurchase: a.isHirePurchase,
     hpPaidPeriodSen: a.hpPaidPeriodRM === "" ? undefined : rmStrToSen(a.hpPaidPeriodRM),

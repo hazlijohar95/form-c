@@ -35,6 +35,8 @@ export interface AssetInput {
   inUseAtYearEnd: boolean;
   monthsInUse?: number; // short basis period: AA pro-rated, IA in full
   disposalPriceSen?: Sen;
+  /** Industrial building qualifying portion % (Sch 3 Para 66 10% rule). Default 100. */
+  qualifyingPct?: number;
 }
 
 export interface AssetResult {
@@ -91,6 +93,11 @@ export function computeAsset(
 ): AssetResult {
   const notes: string[] = [];
   let qe = a.costSen;
+  const pct = a.qualifyingPct ?? 100;
+  if (pct < 100) {
+    qe = Math.round((qe * Math.max(0, pct)) / 100);
+    notes.push(`Qualifying portion ${pct}% (Sch 3 Para 66)`);
+  }
   if (a.isHirePurchase) {
     // Para 46: QE in any period = capital paid in that period (interest excluded).
     // Allowances run on cumulative paid to date; IA on first-paid amount.

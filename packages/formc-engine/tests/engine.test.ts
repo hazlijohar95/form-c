@@ -65,6 +65,16 @@ function demoBase(): Parameters<typeof computeFormC>[0] {
     deemedInterestSen: 0,
     relatedInterestSen: 0,
     taxEbitdaSen: 0,
+    raQeSen: 0,
+    raBfSen: 0,
+    itaAllowanceSen: 0,
+    itaBfSen: 0,
+    itaPct: 70,
+    pioneerExemptSen: 0,
+    groupSurrenderedSen: 0,
+    groupSurrendererLossSen: 0,
+    groupConditionsMet: false,
+    isIhc: false,
     donationsSen: 0,
     zakatSen: 0,
     currentLossOffsetSen: 0,
@@ -299,5 +309,84 @@ describe("per-source floor", () => {
     inp.nonBusiness = [{ label: "Rental (loss)", amountSen: toSen(-5_000) }];
     const out = computeFormC(inp);
     expect(out.aggregateSen).toBe(out.statutorySen); // negative source floored at NIL
+  });
+});
+
+describe("incentives", () => {
+  it("RA 60% on QE against 70% of statutory, balance c/f", () => {
+    const inp = demoBase();
+    inp.schedule3Override = undefined;
+    inp.assets = [];
+    inp.raQeSen = toSen(100_000); // RA available 60,000
+    const out = computeFormC(inp);
+    // statutory business 90,125.20 → RA cap 63,087.64 → absorb 60,000
+    expect(out.raAbsorbedSen).toBe(toSen(60_000));
+    expect(out.raCfSen).toBe(0);
+    expect(out.statutorySen).toBe(toSen(90_125.2) - toSen(60_000) + toSen(0));
+  });
+  it("ITA capped at 70% of statutory", () => {
+    const inp = demoBase();
+    inp.schedule3Override = undefined;
+    inp.assets = [];
+    inp.itaAllowanceSen = toSen(100_000);
+    inp.itaPct = 70;
+    const out = computeFormC(inp);
+    expect(out.itaAbsorbedSen).toBe(Math.round(toSen(90_125.2) * 0.7));
+    expect(out.itaCfSen).toBe(toSen(100_000) - Math.round(toSen(90_125.2) * 0.7));
+  });
+  it("pioneer income excluded from chargeable", () => {
+    const inp = demoBase();
+    inp.pioneerExemptSen = toSen(10_000);
+    const out = computeFormC(inp);
+    expect(out.chargeableExactSen).toBe(toSen(82_679.95) - toSen(10_000));
+  });
+});
+
+describe("group relief s.44A", () => {
+  it("surrender capped at 70% of surrenderer loss", () => {
+    const inp = demoBase();
+    inp.groupSurrenderedSen = toSen(100_000);
+    inp.groupSurrendererLossSen = toSen(100_000);
+    inp.groupConditionsMet = true;
+    const out = computeFormC(inp);
+    expect(out.groupReliefSen).toBe(toSen(70_000));
+    expect(out.findings.join(" ")).toMatch(/70%/);
+  });
+  it("failed conditions = nothing", () => {
+    const inp = demoBase();
+    inp.groupSurrenderedSen = toSen(10_000);
+    inp.groupSurrendererLossSen = toSen(100_000);
+    inp.groupConditionsMet = false;
+    const out = computeFormC(inp);
+    expect(out.groupReliefSen).toBe(0);
+  });
+});
+
+describe("IHC s.60F", () => {
+  it("flat 24%, offsets and carry-forwards blocked", () => {
+    const inp = demoBase();
+    inp.isIhc = true;
+    inp.currentLossOffsetSen = toSen(5_000);
+    inp.bfLosses = [{ yearOfAssessment: 2024, amountBfSen: toSen(5_000) }];
+    const out = computeFormC(inp);
+    expect(out.grossTaxSen).toBe(Math.round(toSen(82_679) * 0.24));
+    expect(out.lossUsedSen).toBe(0);
+    expect(out.findings.join(" ")).toMatch(/60F/);
+  });
+});
+
+describe("industrial building portion (Para 66)", () => {
+  it("60% qualifying portion", () => {
+    const r = computeAsset(
+      {
+        id: "b1", description: "Factory", category: "iba-3",
+        costSen: toSen(1_000_000), allowancesBfSen: 0, isNew: true,
+        isHirePurchase: false, isMotorNonCommercial: false,
+        ownedAtYearEnd: true, inUseAtYearEnd: true, qualifyingPct: 60,
+      },
+      true, 0
+    );
+    expect(r.iaSen).toBe(toSen(60_000)); // 10% of 600,000
+    expect(r.aaSen).toBe(toSen(18_000)); // 3% of 600,000
   });
 });

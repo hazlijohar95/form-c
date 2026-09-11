@@ -84,6 +84,16 @@ export function useComputation(eng: Engagement): {
       deemedInterestSen: deemed140B(eng).totalSen,
       relatedInterestSen: rmStrToSen(eng.relatedInterestRM),
       taxEbitdaSen: rmStrToSen(eng.taxEbitdaRM),
+      raQeSen: rmStrToSen(eng.raQeRM),
+      raBfSen: rmStrToSen(eng.raBfRM),
+      itaAllowanceSen: rmStrToSen(eng.itaAllowanceRM),
+      itaBfSen: rmStrToSen(eng.itaBfRM),
+      itaPct: eng.itaPct === "100" ? 100 : 70,
+      pioneerExemptSen: rmStrToSen(eng.pioneerExemptRM),
+      groupSurrenderedSen: rmStrToSen(eng.groupSurrenderedRM),
+      groupSurrendererLossSen: rmStrToSen(eng.groupSurrendererLossRM),
+      groupConditionsMet: eng.groupConditionsMet,
+      isIhc: eng.isIhc,
       schedule3Override: useOverride
         ? {
             caSen: rmStrToSen(o.caRM),
@@ -297,9 +307,18 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
         <table className="w">
           <tbody>
             <tr>
-              <td>Statutory business income</td>
-              <td className="rm">{formatRM(result.statutorySen)}</td>
+              <td>Statutory business income (before incentives)</td>
+              <td className="rm">{formatRM(result.statutoryBeforeIncentivesSen)}</td>
             </tr>
+            {result.raAbsorbedSen > 0 && (
+              <tr><td>Less: RA absorbed <span className="hint">[Sch 7A, c/f {formatRM(result.raCfSen)}]</span></td><td className="rm">({formatRM(result.raAbsorbedSen)})</td></tr>
+            )}
+            {result.itaAbsorbedSen > 0 && (
+              <tr><td>Less: ITA absorbed <span className="hint">[c/f {formatRM(result.itaCfSen)}]</span></td><td className="rm">({formatRM(result.itaAbsorbedSen)})</td></tr>
+            )}
+            {result.groupReliefSen > 0 && (
+              <tr><td>Less: group relief surrendered <span className="hint">[s.44A]</span></td><td className="rm">({formatRM(result.groupReliefSen)})</td></tr>
+            )}
             {eng.nonBusiness.map((l) => (
               <tr key={l.id}>
                 <td>Add: {l.label} <span className="hint">[per-source, floor NIL]</span></td>

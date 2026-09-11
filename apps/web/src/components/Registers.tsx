@@ -23,6 +23,19 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
       </div>
 
       <div className="card">
+        <h3>Shareholders</h3>
+        {eng.shareholders.map((s) => (
+          <div key={s.id} className="linerow">
+            <input value={s.name} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, name: e.target.value } : x)) })} placeholder="Name" style={{ flex: 2 }} />
+            <input className="num" value={s.shares} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, shares: e.target.value } : x)) })} placeholder="Shares" style={{ flex: 1 }} />
+            <input className="num" value={s.pct} onChange={(e) => patch({ shareholders: eng.shareholders.map((x) => (x.id === s.id ? { ...x, pct: e.target.value } : x)) })} placeholder="%" style={{ flex: 1 }} />
+            <button className="btn ghost" onClick={() => patch({ shareholders: eng.shareholders.filter((x) => x.id !== s.id) })}>×</button>
+          </div>
+        ))}
+        <button className="btn" onClick={() => patch({ shareholders: [...eng.shareholders, { id: uid(), name: "", shares: "", pct: "" }] })}>+ Shareholder</button>
+      </div>
+
+      <div className="card">
         <h3>Related-party accounts — month-end balances (s.140B)</h3>
         <p className="hint">Positive = company owes (credit). Negative = advance to director — engages s.140B deemed interest + CA 2016 s.224.</p>
         <div className="row2">

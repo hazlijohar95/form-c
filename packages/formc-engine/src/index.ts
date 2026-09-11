@@ -10,8 +10,10 @@ import type { SmeProfile } from "./rates.js";
 import type { Sen } from "./money.js";
 import type { WhtLine } from "./related.js";
 import { assessWht, earningsStripping } from "./related.js";
+import { validateGroupRelief } from "./incentives.js";
 export type { WhtLine, WhtSection } from "./related.js";
 export { assessWht, earningsStripping, deemedInterest140B } from "./related.js";
+export { applyIncentives, validateGroupRelief } from "./incentives.js";
 
 export { formatRM, toRM, toSen } from "./money.js";
 export type { Sen } from "./money.js";
@@ -61,6 +63,18 @@ export interface FormCInput {
   whtCreditSen: Sen;
   bilateralCreditSen: Sen;
   priorCreditSen: Sen;
+  // Incentives (Sch 7A RA / ITA / pioneer)
+  raQeSen: Sen;
+  raBfSen: Sen;
+  itaAllowanceSen: Sen;
+  itaBfSen: Sen;
+  itaPct: number;
+  pioneerExemptSen: Sen;
+  // Group relief s.44A + IHC s.60F
+  groupSurrenderedSen: Sen;
+  groupSurrendererLossSen: Sen;
+  groupConditionsMet: boolean;
+  isIhc: boolean;
 }
 
 export interface FormCResult {
@@ -69,6 +83,7 @@ export interface FormCResult {
   balancingChargeSen: Sen;
   balancingAllowanceSen: Sen;
   statutorySen: Sen;
+  statutoryBeforeIncentivesSen: Sen;
   aggregateSen: Sen;
   chargeableExactSen: Sen;
   chargeableSen: Sen;
@@ -76,6 +91,13 @@ export interface FormCResult {
   taxPayableSen: Sen;
   netCashSen: Sen;
   cp204PenaltySen: Sen;
+  raAbsorbedSen: Sen;
+  raCfSen: Sen;
+  itaAbsorbedSen: Sen;
+  itaCfSen: Sen;
+  groupReliefSen: Sen;
+  lossUsedSen: Sen;
+  lossCfSen: { yearOfAssessment: number; amountBfSen: Sen }[];
   scheduleRollSen: Sen; // 0 = footed
   residualCfSen: Sen; // opening pool for next YA
   unabsorbedCaCfSen: Sen; // Para 75 excess, same source
@@ -173,6 +195,18 @@ export function computeFormC(input: FormCInput): FormCResult {
     priorCreditSen: input.priorCreditSen,
     balancingChargeSen: bc,
     balancingAllowanceSen: ba,
+    raQeSen: input.raQeSen,
+    raBfSen: input.raBfSen,
+    itaAllowanceSen: input.itaAllowanceSen,
+    itaBfSen: input.itaBfSen,
+    itaPct: input.itaPct,
+    pioneerExemptSen: input.pioneerExemptSen,
+    groupSurrenderedSen: validateGroupRelief({
+      surrenderedSen: input.groupSurrenderedSen,
+      surrendererLossSen: input.groupSurrendererLossSen,
+      conditionsMet: input.groupConditionsMet,
+    }).allowedSen,
+    isIhc: input.isIhc,
   };
   const out = computeChargeable(comp);
   const penalty = cp204Penalty(out.grossTaxSen, input.cp204EstimateSen);
@@ -190,6 +224,14 @@ export function computeFormC(input: FormCInput): FormCResult {
     if (!r.deductible) findings.push(`WHT not remitted on "${w.description}" — added back s.39(2)`);
   }
   if (strip > 0) findings.push("s.140C earnings stripping disallowance applied");
+  const gr = validateGroupRelief({
+    surrenderedSen: input.groupSurrenderedSen,
+    surrendererLossSen: input.groupSurrendererLossSen,
+    conditionsMet: input.groupConditionsMet,
+  });
+  if (gr.note && input.groupSurrenderedSen > 0) findings.push(gr.note);
+  if (input.isIhc) findings.push("s.60F IHC: flat 24%, no offsets or carry-forwards");
+  if (input.pioneerExemptSen > 0) findings.push("Pioneer exempt income excluded from chargeable");
 
   return {
     adjustedSen: adjusted,
@@ -197,6 +239,7 @@ export function computeFormC(input: FormCInput): FormCResult {
     balancingChargeSen: bc,
     balancingAllowanceSen: ba,
     statutorySen: out.statutoryBusinessSen,
+    statutoryBeforeIncentivesSen: out.statutoryBeforeIncentivesSen,
     aggregateSen: out.aggregateSen,
     chargeableExactSen: out.chargeableExactSen,
     chargeableSen: out.chargeableSen,
@@ -204,6 +247,13 @@ export function computeFormC(input: FormCInput): FormCResult {
     taxPayableSen: out.taxPayableSen,
     netCashSen: out.netCashSen,
     cp204PenaltySen: penalty,
+    raAbsorbedSen: out.raAbsorbedSen,
+    raCfSen: out.raCfSen,
+    itaAbsorbedSen: out.itaAbsorbedSen,
+    itaCfSen: out.itaCfSen,
+    groupReliefSen: out.groupReliefSen,
+    lossUsedSen: out.lossUsedSen,
+    lossCfSen: out.lossCf,
     scheduleRollSen: roll,
     residualCfSen: reCf,
     unabsorbedCaCfSen: out.unabsorbedCaCfSen,

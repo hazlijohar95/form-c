@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ComputationForm } from "./components/ComputationForm.js";
+import { EKeying } from "./components/EKeying.js";
 import { Ingest } from "./components/Ingest.js";
 import { Registers } from "./components/Registers.js";
 import { Review } from "./components/Review.js";
@@ -10,7 +11,7 @@ import { demoSeed } from "./lib/seed.js";
 import type { Engagement, RunRecord } from "./lib/types.js";
 import "./theme.css";
 
-type Tab = "ingest" | "entry" | "registers" | "review" | "report";
+type Tab = "ingest" | "entry" | "registers" | "review" | "ekey" | "report";
 
 export default function App(): JSX.Element {
   const [list, setList] = useState<Engagement[]>(() => loadAll());
@@ -40,22 +41,7 @@ export default function App(): JSX.Element {
     setTab("ingest");
   }
 
-  function rollover(): void {
-    if (!eng) return;
-    const next: Engagement = {
-      ...blankEngagement(),
-      id: uid(),
-      companyName: eng.companyName,
-      regNo: eng.regNo,
-      ya: eng.ya + 1,
-      paidUpRM: eng.paidUpRM,
-      grossIncRM: eng.grossIncRM,
-      foreignPct: eng.foreignPct,
-      directors: eng.directors.map((d) => ({ ...d, id: uid(), salaryRM: "", loanRM: "" })),
-      bfLosses: [],
-      unabsorbedCaBfRM: "0",
-      priorYear: { ...eng.priorYear, agreed: false },
-    };
+  function rollover(next: Engagement): void {
     setList((prev) => [next, ...prev]);
     setActiveId(next.id);
     setTab("entry");
@@ -91,15 +77,12 @@ export default function App(): JSX.Element {
               <button className="btn ghost" onClick={duplicate}>
                 Duplicate
               </button>
-              <button className="btn ghost" onClick={rollover}>
-                Rollover YA{eng.ya + 1}
-              </button>
               <button className="btn ghost" onClick={remove}>
-            Delete
-          </button>
-          <button className="btn ghost" onClick={() => { if (window.confirm("Erase ALL engagements from this browser?")) { eraseAll(); setList([]); setActiveId(null); } }}>
-            Erase all
-          </button>
+                Delete
+              </button>
+              <button className="btn ghost" onClick={() => { if (window.confirm("Erase ALL engagements from this browser?")) { eraseAll(); setList([]); setActiveId(null); } }}>
+                Erase all
+              </button>
             </>
           )}
         </div>
@@ -128,7 +111,7 @@ export default function App(): JSX.Element {
               ))}
             </ul>
           </div>
-          {eng && <MiniSummary eng={eng} />}
+          {eng && <MiniSummary eng={eng} onRollover={rollover} />}
         </div>
 
         <div>
@@ -146,7 +129,8 @@ export default function App(): JSX.Element {
                     ["entry", "2 · Entry"],
                     ["registers", "3 · Registers"],
                     ["review", "4 · Review"],
-                    ["report", "5 · Report"],
+                    ["ekey", "5 · e-C keying"],
+                    ["report", "6 · Report"],
                   ] as [Tab, string][]
                 ).map(([t, label]) => (
                   <button
@@ -162,6 +146,7 @@ export default function App(): JSX.Element {
               {tab === "entry" && <ComputationForm eng={eng} patch={patch} />}
               {tab === "registers" && <Registers eng={eng} patch={patch} />}
               {tab === "review" && <Review eng={eng} patch={patch} />}
+              {tab === "ekey" && <EKeying eng={eng} patch={patch} />}
               {tab === "report" && (
                 <Report
                   eng={eng}
@@ -179,8 +164,37 @@ export default function App(): JSX.Element {
   );
 }
 
-function MiniSummary(props: { eng: Engagement }): JSX.Element {
+function MiniSummary(props: { eng: Engagement; onRollover: (next: Engagement) => void }): JSX.Element {
   const { result } = useComputation(props.eng);
+  function rollover(): void {
+    const e = props.eng;
+    const next: Engagement = {
+      ...blankEngagement(),
+      id: uid(),
+      companyName: e.companyName,
+      regNo: e.regNo,
+      ya: e.ya + 1,
+      paidUpRM: e.paidUpRM,
+      grossIncRM: e.grossIncRM,
+      foreignPct: e.foreignPct,
+      directors: e.directors.map((d) => ({ ...d, id: uid(), salaryRM: "", loanRM: "" })),
+      shareholders: e.shareholders.map((s) => ({ ...s, id: uid() })),
+      bfLosses: result.lossCfSen.map((l) => ({ id: uid(), ya: String(l.yearOfAssessment), amountRM: String(l.amountBfSen / 100) })),
+      unabsorbedCaBfRM: String(result.unabsorbedCaCfSen / 100),
+      raBfRM: String(result.raCfSen / 100),
+      itaBfRM: String(result.itaCfSen / 100),
+      priorYear: {
+        ciRM: String(result.chargeableSen / 100),
+        taxRM: String(result.grossTaxSen / 100),
+        caRM: "",
+        lossesBfRM: "",
+        unabsorbedCaBfRM: "",
+        reBfRM: String(result.residualCfSen / 100),
+        agreed: false,
+      },
+    };
+    props.onRollover(next);
+  }
   return (
     <div className="card">
       <h3>Live position</h3>
@@ -197,6 +211,11 @@ function MiniSummary(props: { eng: Engagement }): JSX.Element {
         <span className="num">
           {props.eng.checks.filter(Boolean).length}/{props.eng.checks.length}
         </span>
+      </div>
+      <div className="toolbar">
+        <button className="btn" onClick={rollover}>
+          Rollover YA{props.eng.ya + 1}
+        </button>
       </div>
     </div>
   );

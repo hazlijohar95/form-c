@@ -40,7 +40,15 @@ are synthetic.
 2. Disposal year: no IA/AA (Para 15); BC capped at allowances given (Para 37); BA otherwise.
 3. SVA: new assets only, QE ≤ RM2,000, non-SME cap RM20k (SME uncapped).
 4. Para 75: CA cannot create a loss; excess → unabsorbed CA, same source.
-5. s.107C(10): shortfall vs **30% of tax payable** (not 130% of estimate — the file's own draft got this wrong once).
+5. s.107C(10): shortfall vs **30% of tax payable** (not 130% of estimate).
 6. Unverified prior-YA credits are EXCLUDED from net cash (stale MyTax credits must be written off, not relied on).
 7. Roll-forward must foot: RE b/f + additions − CA − disposed RE − RE c/f = 0.
 8. Register tie: qualifying QE + non-qualifying (+ expensed repairs) = register grand total.
+9. HP: allowances on cumulative capital paid (Para 46); missing paid figures = zero claim + data error.
+10. WHT unremitted → deduction denied s.39(2), auto-added back.
+11. s.140C excess interest permanently disallowed, auto-added back.
+12. s.140B advances priced at market rate from month-end balances.
+13. RA 60% vs 70% of business statutory; ITA vs itaPct%; pioneer excluded from chargeable.
+14. s.44A surrender ≤ 70% of surrenderer loss, conditions all-or-nothing.
+15. s.60F IHC: flat 24%, no offsets, no carry-forwards.
+16. No client data in repo: synthetic demo seed only; v1–v3 storage keys wiped, never migrated.

@@ -1,17 +1,41 @@
 {
   "form": "C",
-  "ya": 2025,
   "portal": "https://mytax.hasil.gov.my",
-  "units": "export sen / 100 = MyTax RM",
-  "fields": [
-    { "export": "chargeableIncomeSen", "mytax": "Pendapatan bercukai / Chargeable income", "transform": "sen/100" },
-    { "export": "grossTaxSen", "mytax": "Cukai atas pendapatan bercukai / Tax on chargeable", "transform": "sen/100" },
-    { "export": "taxPayableSen", "mytax": "Cukai perlu dibayar / Tax payable", "transform": "sen/100" },
-    { "export": "smeQualifies", "mytax": "Kadar SME 15/17/24 vs rata 24% / SME bands vs flat", "transform": "verify bands match" },
-    { "export": "filingDeadline", "mytax": "Deadline check: 7 months from FYE close", "transform": "date" }
+  "units": "export sen / 100 = MyTax RM; chargeable already whole-RM truncated",
+  "screens": [
+    { "screen": "Maklumat syarikat", "fields": [
+      { "export": "company/regNo/ya/fyeFrom/fyeTo", "mytax": "Company profile + basis period" },
+      { "export": "smeQualifies", "mytax": "SME bands 15/17/24 vs flat 24 — must match" }
+    ]},
+    { "screen": "Pengarah / Pemegang saham", "fields": [
+      { "export": "directors[] {name, sharePct, salary, loan}", "mytax": "Director schedule — loan column must match accounts" },
+      { "export": "shareholders[] {name, shares, pct}", "mytax": "Shareholder schedule" }
+    ]},
+    { "screen": "Perisytiharan", "fields": [
+      { "export": "declarations[]", "mytax": "Ya/Tidak per declaration incl. controlled transactions s.139/140A" }
+    ]},
+    { "screen": "Bahagian B", "fields": [
+      { "export": "statutoryBeforeIncentivesSen", "mytax": "Statutory business income" },
+      { "export": "nonBusiness[]", "mytax": "Other sources (interest s.4(c), rental s.4(d))" },
+      { "export": "chargeableIncomeSen", "mytax": "Pendapatan bercukai" },
+      { "export": "grossTaxSen", "mytax": "Cukai atas pendapatan bercukai" },
+      { "export": "cp204PaidSen", "mytax": "s.107C instalments" },
+      { "export": "taxPayableSen", "mytax": "BAKI (balance)" }
+    ]},
+    { "screen": "Lampiran A1", "fields": [
+      { "export": "netProfit + addBacks[] + credits[]", "mytax": "Pelarasan: profit, add-backs, exclusions, adjusted income" }
+    ]},
+    { "screen": "Jadual 3", "fields": [
+      { "export": "totalCaSen / balancingChargeSen / residualCfSen", "mytax": "CA, balancing charge, RE c/f" }
+    ]},
+    { "screen": "D1", "fields": [
+      { "export": "doubleDeductions[] {code, amount}", "mytax": "Codes 132/157/... with P.U.(A) references" }
+    ]}
   ],
   "gates": [
     "all checklist items done",
+    "no unresolved blocking items",
+    "verification panel all pass",
     "user logged in manually",
     "per-field read-back confirmed",
     "never submit without explicit approval"
