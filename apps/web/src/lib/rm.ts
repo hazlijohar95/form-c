@@ -28,6 +28,27 @@ export function parseRm(v: string): RmParse {
   return { sen: rm * 100 + Number(cents), error: null };
 }
 
+/** Parse a signed RM string ("-12,000.50" allowed) -> sen. Malformed -> 0. */
+export function signedRmToSen(v: string): number {
+  const s = String(v).replace(/,/g, "").trim();
+  if (s === "") return 0;
+  const m = s.match(/^(-)?(\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return 0;
+  const rm = Number(m[2]);
+  const cents = (m[3] ?? "").padEnd(2, "0");
+  if (!Number.isSafeInteger(rm)) return 0;
+  const sen = rm * 100 + Number(cents);
+  return m[1] ? -sen : sen;
+}
+
+/** True when a signed RM string is well-formed (blank counts as untouched). */
+export function isSignedRm(v: string): boolean {
+  const s = String(v).replace(/,/g, "").trim();
+  if (s === "") return true;
+  const m = s.match(/^(-)?(\d+)(?:\.(\d{1,2}))?$/);
+  return m !== null && Number.isSafeInteger(Number(m[2]));
+}
+
 /** Parse a plain numeric string ("12", "4.5") -> number, fallback 0. */
 export function numOr0(v: string): number {
   const n = Number(String(v).replace(/,/g, "").trim());

@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { copyText } from "../../lib/clipboard.js";
 import "./text-field.css";
 
 export interface TextFieldProps {
@@ -78,7 +79,8 @@ export function TextField(props: TextFieldProps): JSX.Element {
 
   function handleCopy(): void {
     const value = props.value ?? props.defaultValue ?? "";
-    void navigator.clipboard.writeText(value).then(() => {
+    void copyText(value).then((ok) => {
+      if (!ok) return;
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     });

@@ -1,9 +1,8 @@
 import { formatRM } from "@formc/engine";
-import { CHECKLIST } from "./types.js";
-import { computeEngagement } from "./computation.js";
-import { rolloverEngagement } from "./rollover.js";
-import { demoSeed } from "./seed.js";
-import { plural } from "./lists.js";
+import { checklistFor } from "./types.js";
+import { computeEngagement, computeEngagementB, computeEngagementP, headsOf } from "./computation.js";
+import { rolloverEngagement, rolloverEngagementB, rolloverEngagementP } from "./rollover.js";
+import { demoSeed, demoSeedB, demoSeedP } from "./seed.js";
 import { TABS, type Tab } from "../shell/tabs.js";
 import type { PaletteAction } from "../components/ui/Palette.js";
 import type { ThemeMode } from "./theme.js";
@@ -55,7 +54,7 @@ export function buildCommands(o: {
       id: "snapshot",
       group: "Filing",
       title: "Snapshot computation run",
-      hint: eng ? `CI ${formatRM(computeEngagement(eng).result.chargeableSen)}` : "",
+      hint: eng ? `CI ${formatRM(headsOf(eng).ciSen)}` : "",
       run: o.doSnapshot,
     },
     { id: "copy-export", group: "Filing", title: "Copy MyTax JSON", hint: "gated by checklist", run: o.doCopyExport },
@@ -70,6 +69,24 @@ export function buildCommands(o: {
         o.toast({ title: "Demo loaded", detail: "Showing the Report tab." });
       },
     },
+    {
+      id: "demo-b", group: "Engagement", title: "Load Form B demo", hint: "sole prop", run: () => {
+        const e = demoSeedB();
+        o.setList((prev) => [e, ...prev]);
+        o.setActiveId(e.id); o.setTab("report"); o.go(e.id, "report");
+        o.saveServer(e).catch(() => undefined);
+        o.toast({ title: "Form B demo loaded", detail: "Showing the Report tab." });
+      },
+    },
+    {
+      id: "demo-p", group: "Engagement", title: "Load Form P demo", hint: "partnership", run: () => {
+        const e = demoSeedP();
+        o.setList((prev) => [e, ...prev]);
+        o.setActiveId(e.id); o.setTab("report"); o.go(e.id, "report");
+        o.saveServer(e).catch(() => undefined);
+        o.toast({ title: "Form P demo loaded", detail: "Showing the Report tab." });
+      },
+    },
     ...switchActions,
   ];
   if (eng) {
@@ -80,7 +97,13 @@ export function buildCommands(o: {
         group: "Engagement",
         title: `Rollover to YA${eng.ya + 1}`,
         hint: "carries B/F",
-        run: () => o.rollover(rolloverEngagement(eng, computeEngagement(eng).result)),
+        run: () => o.rollover(
+          eng.formType === "B"
+            ? rolloverEngagementB(eng, computeEngagementB(eng).result)
+            : eng.formType === "P"
+              ? rolloverEngagementP(eng, computeEngagementP(eng).results)
+              : rolloverEngagement(eng, computeEngagement(eng).result)
+        ),
       },
       { id: "delete", group: "Engagement", title: `Delete “${eng.companyName || "engagement"}”`, hint: "confirms", run: o.remove }
     );
@@ -110,11 +133,7 @@ export function buildCommands(o: {
 export function suggestedIdsFor(eng: Engagement | null): string[] {
   if (!eng) return ["new"];
   const done = eng.checks.filter(Boolean).length;
-  if (eng.ingestText.trim() === "" && eng.addBacks.length === 0) return ["tab-ingest"];
-  if (done < CHECKLIST.length) return ["tab-report"];
+  if (eng.ingestText.trim() === "" && eng.addBacks.length === 0 && eng.businesses.length === 0) return ["tab-onboard"];
+  if (done < checklistFor(eng.formType).length) return ["tab-report"];
   return ["snapshot"];
-}
-
-export function pluralWrap(n: number, w: string): string {
-  return plural(n, w);
 }

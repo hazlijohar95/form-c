@@ -1,6 +1,7 @@
-export type Tab = "ingest" | "entry" | "registers" | "review" | "ekey" | "report";
+export type Tab = "onboard" | "ingest" | "entry" | "registers" | "review" | "ekey" | "report";
 
 export const TABS: { id: Tab; label: string; step: string }[] = [
+  { id: "onboard", label: "Onboard", step: "0" },
   { id: "ingest", label: "Ingest", step: "1" },
   { id: "entry", label: "Entry", step: "2" },
   { id: "registers", label: "Registers", step: "3" },

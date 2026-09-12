@@ -1,7 +1,8 @@
-import { formatRM } from "@formc/engine";
+import { formatRM, reliefCapFor } from "@formc/engine";
 import { rmStrToSen } from "../lib/rm.js";
 import { plural, updateById, removeById, uid } from "../lib/lists.js";
-import { computeEngagement, diagnoseRmInputs } from "../lib/computation.js";
+import { computeEngagement, computeEngagementB, computeEngagementP, diagnoseRmInputs } from "../lib/computation.js";
+import { requiredDocsIn } from "../lib/onboarding.js";
 import { LineTable } from "./LineTable.js";
 import { RmInput } from "./RmInput.js";
 import type { Engagement, Judgement, OpenItem } from "../lib/types.js";
@@ -12,6 +13,31 @@ interface Check {
   name: string;
   pass: boolean;
   detail: string;
+}
+
+// Shared verification atoms — C, B, and P word these identically so the
+// review panel reads as one checklist no matter the return type.
+function blockingCheck(eng: Engagement): Check {
+  const open = eng.openItems.filter((o) => !o.resolved).length;
+  return { name: "No unresolved blocking items", pass: open === 0, detail: open === 0 ? "clear" : `${open} open` };
+}
+
+function judgementsCheck(eng: Engagement): Check {
+  const unsigned = eng.judgements.filter((j) => !j.signedOff).length;
+  return { name: "Judgements signed off", pass: unsigned === 0, detail: unsigned === 0 ? "all signed" : `${unsigned} unsigned` };
+}
+
+function hpCheck(missing: number): Check {
+  return { name: "HP assets carry paid figures", pass: missing === 0, detail: missing === 0 ? "complete" : `${missing} missing` };
+}
+
+function docsCheck(eng: Engagement): Check {
+  const docs = requiredDocsIn(eng.documents);
+  return {
+    name: "Required source docs in",
+    pass: docs.total > 0 && docs.done === docs.total,
+    detail: docs.total === 0 ? "checklist not loaded" : `${docs.done}/${docs.total}`,
+  };
 }
 
 export function verification(eng: Engagement): Check[] {
@@ -87,18 +113,95 @@ export function verification(eng: Engagement): Check[] {
       pass: billsTotal === rmStrToSen(eng.cp204PaidRM),
       detail: `bills ${formatRM(billsTotal)} vs paid ${formatRM(rmStrToSen(eng.cp204PaidRM))}`,
     });
-  const open = eng.openItems.filter((o) => !o.resolved).length;
-  out.push({ name: "No unresolved blocking items", pass: open === 0, detail: open === 0 ? "clear" : `${open} open` });
+  out.push(blockingCheck(eng));
   const hpMissing = eng.assets.filter((a) => a.isHirePurchase && (a.hpPaidPeriodRM === "" || a.hpPaidTotalRM === "")).length;
-  out.push({ name: "HP assets carry paid figures", pass: hpMissing === 0, detail: hpMissing === 0 ? "complete" : `${hpMissing} missing` });
-  const unsigned = eng.judgements.filter((j) => !j.signedOff).length;
-  out.push({ name: "Judgements signed off", pass: unsigned === 0, detail: unsigned === 0 ? "all signed" : `${unsigned} unsigned` });
+  out.push(hpCheck(hpMissing));
+  out.push(judgementsCheck(eng));
+  return out;
+}
+
+export function verificationB(eng: Engagement): Check[] {
+  const { result } = computeEngagementB(eng);
+  const out: Check[] = [];
+  out.push({
+    name: "At least one business entered",
+    pass: eng.businesses.length > 0,
+    detail: eng.businesses.length > 0 ? `${eng.businesses.length} ${plural(eng.businesses.length, "business")}` : "add one on the Entry tab",
+  });
+  const badRoll = result.businesses.filter((b) => b.scheduleRollSen !== 0).length;
+  out.push({
+    name: "Schedule roll-forward foots to zero",
+    pass: badRoll === 0,
+    detail: badRoll === 0 ? "0.00" : `${badRoll} off`,
+  });
+  const overCap = eng.reliefs.filter((l) => {
+    const cap = reliefCapFor(l.key, l.capRM === "" ? undefined : rmStrToSen(l.capRM));
+    return cap !== null && rmStrToSen(l.amountRM) > cap;
+  }).length;
+  out.push({
+    name: "Reliefs within caps",
+    pass: overCap === 0,
+    detail: overCap === 0 ? `${formatRM(result.reliefsAllowedSen)} allowed` : `${overCap} over cap`,
+  });
+  const unallocated = eng.partnerShares.filter((s) => s.allocatedRM.trim() === "").length;
+  out.push({
+    name: "Partnership shares allocated",
+    pass: unallocated === 0,
+    detail: unallocated === 0 ? (eng.partnerShares.length > 0 ? "allocated" : "none — sole prop") : `${unallocated} blank`,
+  });
+  out.push(docsCheck(eng));
+  const recompute = Math.floor(result.chargeableExactSen / 100) * 100;
+  out.push({
+    name: "CI truncation + rate recompute",
+    pass: recompute === result.chargeableSen,
+    detail: `${formatRM(result.chargeableExactSen)} → ${formatRM(result.chargeableSen)}`,
+  });
+  out.push(blockingCheck(eng));
+  const hpMissing = eng.businesses.flatMap((b) => b.assets).filter((a) => a.isHirePurchase && (a.hpPaidPeriodRM === "" || a.hpPaidTotalRM === "")).length;
+  out.push(hpCheck(hpMissing));
+  out.push(judgementsCheck(eng));
+  return out;
+}
+
+export function verificationP(eng: Engagement): Check[] {
+  const { results } = computeEngagementP(eng);
+  const out: Check[] = [];
+  out.push({
+    name: "At least one firm entered",
+    pass: results.length > 0,
+    detail: results.length > 0 ? `${results.length} ${plural(results.length, "firm")}` : "add one on the Entry tab",
+  });
+  const badRoll = results.filter((r) => r.scheduleRollSen !== 0).length;
+  out.push({
+    name: "Schedule roll-forward foots to zero",
+    pass: badRoll === 0,
+    detail: badRoll === 0 ? "0.00" : `${badRoll} off`,
+  });
+  const ratioBad = results.filter((r) => r.allocations.length > 0 && Math.abs(r.ratioTotalPct - 100) > 1e-9).length;
+  out.push({
+    name: "Profit-sharing ratios total 100%",
+    pass: ratioBad === 0,
+    detail: ratioBad === 0 ? "100%" : `${ratioBad} off`,
+  });
+  // Tolerance is 1 sen per partner (per-partner rounding); anything more
+  // means balance went unallocated — ratios do not total 100%.
+  const offFoot = results.filter((r) => Math.abs(r.allocationDeltaSen) > Math.max(1, r.allocations.length)).length;
+  out.push({
+    name: "Allocations foot to divisional",
+    pass: offFoot === 0,
+    detail: offFoot === 0 ? "footed (mod rounding)" : `${offFoot} off`,
+  });
+  out.push(docsCheck(eng));
+  out.push(blockingCheck(eng));
+  const hpMissing = eng.partnerships.flatMap((f) => f.assets).filter((a) => a.isHirePurchase && (a.hpPaidPeriodRM === "" || a.hpPaidTotalRM === "")).length;
+  out.push(hpCheck(hpMissing));
+  out.push(judgementsCheck(eng));
   return out;
 }
 
 export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
-  const checks = verification(eng);
+  const checks = eng.formType === "B" ? verificationB(eng) : eng.formType === "P" ? verificationP(eng) : verification(eng);
   const failed = checks.filter((c) => !c.pass).length;
   const rmIssues = diagnoseRmInputs(eng);
   return (

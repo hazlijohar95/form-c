@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { blankEngagement, CHECKLIST } from "./lib/types.js";
-import { computeEngagement } from "./lib/computation.js";
+import { blankEngagement, checklistFor } from "./lib/types.js";
+import { headsOf } from "./lib/computation.js";
 import { buildMytaxExport } from "./lib/myexport.js";
+import { copyText } from "./lib/clipboard.js";
 import type { Engagement, RunRecord } from "./lib/types.js";
 import { eraseAll, loadAll, saveAll } from "./lib/store.js";
+import { loadClients, saveClients } from "./lib/clients.js";
+import type { Client } from "./lib/types.js";
 import {
   migrateLocalToServer,
   useDeleteEngagement,
@@ -37,6 +40,7 @@ export default function App(): JSX.Element {
 
   const [initial] = useState<Engagement[]>(() => loadAll());
   const [list, setList] = useState<Engagement[]>(initial);
+  const [clients, setClients] = useState<Client[]>(() => loadClients());
   const { list: serverList, useServer, error: serverError, retry: retryServer } = useEngagements(initial);
   const saveServer = useSaveEngagement();
   const deleteServer = useDeleteEngagement();
@@ -79,6 +83,7 @@ export default function App(): JSX.Element {
   const [defaultYa, setDefaultYa] = useState<number>(2025);
 
   useEffect(() => saveAll(list), [list]);
+  useEffect(() => saveClients(clients), [clients]);
 
   useEffect(() => {
     if (params.engagementId && params.engagementId !== activeId) setActiveId(params.engagementId);
@@ -119,7 +124,7 @@ export default function App(): JSX.Element {
       const now = Date.now();
       if (pendingG.current && now - pendingG.current < 900) {
         pendingG.current = 0;
-        const idx = ["1", "2", "3", "4", "5", "6"].indexOf(e.key);
+        const idx = ["0", "1", "2", "3", "4", "5", "6"].indexOf(e.key);
         if (idx >= 0 && TABS[idx]) {
           e.preventDefault();
           setTab(TABS[idx].id);
@@ -156,10 +161,10 @@ export default function App(): JSX.Element {
     e.ya = defaultYa;
     setList((prev) => [e, ...prev]);
     setActiveId(e.id);
-    setTab("ingest");
-    go(e.id, "ingest");
+    setTab("onboard");
+    go(e.id, "onboard");
     saveServer(e).catch(() => toast({ title: "Saved locally", detail: "Will sync when D1 is reachable.", err: true }));
-    toast({ title: "Engagement created", detail: "Start at Ingest." });
+    toast({ title: "Engagement created", detail: "Start at Onboard." });
   }
 
   function rollover(next: Engagement): void {
@@ -212,8 +217,13 @@ export default function App(): JSX.Element {
     if (!activeId) return;
     const current = list.find((e) => e.id === activeId);
     if (!current) return;
-    const { result } = computeEngagement(current);
-    const r: RunRecord = { at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen };
+    const heads = headsOf(current);
+    const r: RunRecord = {
+      at: new Date().toISOString(),
+      ciSen: heads.ciSen,
+      taxSen: heads.taxSen,
+      payableSen: heads.payableSen,
+    };
     const updated: Engagement = { ...current, runs: [...current.runs, r].slice(-20), updatedAt: new Date().toISOString() };
     setList((prev) => prev.map((e) => (e.id === activeId ? updated : e)));
     saveServer(updated).catch(() => toast({ title: "Snapshot kept locally", err: true }));
@@ -226,15 +236,15 @@ export default function App(): JSX.Element {
     const current = list.find((e) => e.id === activeId);
     if (!current) return;
     const done = current.checks.filter(Boolean).length;
-    if (done < CHECKLIST.length) {
-      toast({ title: "Checklist incomplete", detail: `${CHECKLIST.length - done} left.`, err: true });
+    const want = checklistFor(current.formType).length;
+    if (done < want) {
+      toast({ title: "Checklist incomplete", detail: `${want - done} left.`, err: true });
       setTab("report");
       go(activeId, "report");
       return;
     }
-    void navigator.clipboard.writeText(buildMytaxExport(current)).then(
-      () => toast({ title: "MyTax JSON copied" }),
-      () => toast({ title: "Copy failed", err: true })
+    void copyText(buildMytaxExport(current)).then((ok) =>
+      ok ? toast({ title: "MyTax JSON copied" }) : toast({ title: "Copy failed", err: true })
     );
   }, [activeId, list, toast]);
 
@@ -317,6 +327,8 @@ export default function App(): JSX.Element {
           onExport={() => doCopyExport()}
           onDuplicate={duplicate}
           onRemove={remove}
+          clients={clients}
+          onClients={setClients}
           notify={toast}
         />
         </div>

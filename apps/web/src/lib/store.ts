@@ -1,13 +1,13 @@
 import { isWhtSection } from "@formc/engine";
 import { blankEngagement } from "./types.js";
 import type { Engagement } from "./types.js";
-import { CHECKLIST } from "./constants.js";
+import { checklistFor } from "./constants.js";
 
 const KEY = "formc.engagements.v4";
 // v1–v3 keys are abandoned AND wiped on load — they may hold real client
 // data from earlier builds. No migration: re-key from source.
 
-function normalizeStored(e: Record<string, unknown>): Engagement {
+export function normalizeStored(e: Record<string, unknown>): Engagement {
   const base = blankEngagement();
   const merged = { ...base, ...e } as Engagement;
   // v4 records may carry untyped WHT sections from before WhtLineUI.section
@@ -21,10 +21,32 @@ function normalizeStored(e: Record<string, unknown>): Engagement {
       };
     });
   }
-  // Older records may have a shorter checks array than current CHECKLIST.
-  if (!Array.isArray(merged.checks) || merged.checks.length !== CHECKLIST.length) {
+  // Older records may carry a shorter checks array — pad per form checklist.
+  const wantChecks = checklistFor(merged.formType === "B" ? "B" : merged.formType === "P" ? "P" : "C").length;
+  if (!Array.isArray(merged.checks) || merged.checks.length !== wantChecks) {
     const prev = Array.isArray(merged.checks) ? merged.checks : [];
-    merged.checks = CHECKLIST.map((_, i) => prev[i] ?? false);
+    merged.checks = Array.from({ length: wantChecks }, (_, i) => prev[i] ?? false);
+  }
+  // Pre-multi-form records lack the Phase 1 fields — default, never migrate.
+  if (merged.formType !== "C" && merged.formType !== "B" && merged.formType !== "P") merged.formType = "C";
+  if (typeof merged.clientId !== "string") merged.clientId = "";
+  for (const k of ["documents", "reliefs", "businesses", "partnerships", "partnerShares"] as const) {
+    if (!Array.isArray(merged[k])) merged[k] = [];
+  }
+  for (const k of ["cp500EstimateRM", "cp500PaidRM", "employmentRM", "rebatesRM"] as const) {
+    if (typeof merged[k] !== "string") merged[k] = k === "employmentRM" ? "" : "0";
+  }
+  // Phase 1 nested rows may predate newer fields — default per row.
+  if (Array.isArray(merged.partnerShares)) {
+    merged.partnerShares = merged.partnerShares.map((s) => {
+      const r = s as unknown as Partial<(typeof merged.partnerShares)[number]>;
+      return {
+        ...s,
+        firmAdjustedRM: r.firmAdjustedRM ?? "",
+        firmSalariesRM: r.firmSalariesRM ?? "",
+        firmInterestRM: r.firmInterestRM ?? "",
+      };
+    });
   }
   if (!Array.isArray(merged.declarations) || merged.declarations.length === 0) {
     merged.declarations = base.declarations;

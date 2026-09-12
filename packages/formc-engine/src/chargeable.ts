@@ -1,6 +1,7 @@
 import type { Sen } from "./money.js";
 import { taxOnBands } from "./money.js";
 import { CAPS } from "./rates.js";
+import { applyBfLosses } from "./losses.js";
 import { smeBandsFor } from "./sme.js";
 import { applyIncentives } from "./incentives.js";
 
@@ -119,29 +120,17 @@ export function computeChargeable(input: ComputationInput): ComputationResult {
   const afterCurrentLoss = Math.max(0, aggregate - currentLoss - groupRelief);
 
   // B/F losses: business income only, FIFO, 10-year expiry.
-  let remaining = afterCurrentLoss;
-  let lossUsed = 0;
-  const lossCf: LossYear[] = [];
-  let expiredDropped = false;
   const businessOnlyBase = statutoryBusiness; // B/F losses cannot shelter non-business
-  for (const ly of bfLossList) {
-    const age = input.currentYa - ly.yearOfAssessment;
-    if (age > CAPS.lossCarryYears || age < 0) {
-      expiredDropped = true;
-      continue; // expired or future — drop
-    }
-    if (remaining <= 0) {
-      lossCf.push(ly);
-      continue;
-    }
-    // B/F business loss can only absorb up to business portion still in remaining.
-    const businessCap = Math.min(remaining, Math.max(0, statutoryBusiness - lossUsed));
-    const use = Math.min(ly.amountBfSen, remaining, businessCap);
-    lossUsed += use;
-    remaining -= use;
-    const left = ly.amountBfSen - use;
-    if (left > 0) lossCf.push({ yearOfAssessment: ly.yearOfAssessment, amountBfSen: left });
-  }
+  const applied = applyBfLosses({
+    remainingSen: afterCurrentLoss,
+    businessCapSen: businessOnlyBase,
+    bfLosses: bfLossList,
+    currentYa: input.currentYa,
+  });
+  const remaining = applied.remainingSen;
+  const lossUsed = applied.lossUsedSen;
+  const lossCf = applied.lossCf;
+  const expiredDropped = applied.expiredDropped;
 
   const totalIncome = Math.max(0, remaining - input.pioneerExemptSen);
   const chargeableExact = Math.max(0, totalIncome);

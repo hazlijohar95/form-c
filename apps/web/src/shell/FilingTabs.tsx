@@ -11,6 +11,12 @@ import { TABS, type Tab } from "./tabs.js";
  * number with no unit.
  */
 function badgeFor(id: Tab, eng: Engagement): { text: string; label: string } | null {
+  if (id === "onboard") {
+    const req = eng.documents.filter((d) => d.required);
+    if (req.length === 0) return null;
+    const done = req.filter((d) => d.status !== "missing").length;
+    return { text: `${done}/${req.length}`, label: `${done} of ${req.length} required documents in` };
+  }
   if (id === "report") {
     const done = eng.checks.filter(Boolean).length;
     return { text: `${done}/${eng.checks.length}`, label: `${done} of ${eng.checks.length} checklist items done` };

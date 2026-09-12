@@ -2,17 +2,25 @@ import { useMemo } from "react";
 import {
   assessRelatedAccount,
   checkSme,
+  computeFormB,
   computeFormC,
+  computePartnership,
   computeSchedule3,
   isWhtSection,
   WHT_SECTIONS,
 } from "@formc/engine";
-import type { FormCInput } from "@formc/engine";
-import { rmStrToSen, numOr0, parseRm } from "./rm.js";
+import type { FormBInput, FormCInput, PartnershipInput, Sen } from "@formc/engine";
+import { rmStrToSen, numOr0, parseRm, signedRmToSen, isSignedRm } from "./rm.js";
 import { toAssetInput } from "./types.js";
-import type { Engagement } from "./types.js";
+import type { AddBackLine, BusinessUnit, Engagement, PartnershipFirm } from "./types.js";
 
 export { WHT_SECTIONS };
+
+// Signed-amount fields (loss shares, firm P&L) accept a leading minus —
+// only malformed text is reported, never a genuine negative.
+function signedIssue(label: string, v: string): [string, string][] {
+  return isSignedRm(v) ? [] : [[label, v]];
+}
 export function whtSectionList(): typeof WHT_SECTIONS {
   return WHT_SECTIONS;
 }
@@ -137,6 +145,166 @@ export function computeEngagement(eng: Engagement): {
   return { result, assetRows: rows };
 }
 
+type Schedulable = Pick<
+  BusinessUnit,
+  "addBacks" | "credits" | "doubleDeductions" | "assets" | "schedule3"
+>;
+
+// P&L line mapping shared by businesses and firms — one RM→sen pass,
+// identical section/basis/cap/override conventions on both adapters.
+function schedulableInput(x: Schedulable): {
+  addBacks: { description: string; amountSen: number; section: AddBackLine["section"] }[];
+  credits: { description: string; amountSen: number; basis: string }[];
+  doubleDeductions: {
+    description: string;
+    amountSen: number;
+    authority: string;
+    code: string | undefined;
+    capSen: number | undefined;
+  }[];
+  assets: ReturnType<typeof toAssetInput>[];
+  schedule3Override:
+    | {
+        caSen: number;
+        balancingChargeSen: number;
+        balancingAllowanceSen: number;
+        residualBfSen: number;
+        additionsSen: number;
+        disposedReSen: number;
+        residualCfSen: number;
+        note: string;
+      }
+    | undefined;
+} {
+  const o = x.schedule3;
+  return {
+    addBacks: x.addBacks.map((l) => ({
+      description: l.description || "(unnamed)",
+      amountSen: rmStrToSen(l.amountRM),
+      section: l.section,
+    })),
+    credits: x.credits.map((l) => ({
+      description: l.description || "(unnamed)",
+      amountSen: rmStrToSen(l.amountRM),
+      basis: l.basis,
+    })),
+    doubleDeductions: x.doubleDeductions.map((l) => ({
+      description: l.description || "(unnamed)",
+      amountSen: rmStrToSen(l.amountRM),
+      authority: l.authority,
+      code: l.code || undefined,
+      capSen: l.capRM === "" ? undefined : rmStrToSen(l.capRM),
+    })),
+    assets: x.assets.map(toAssetInput),
+    schedule3Override: o.enabled
+      ? {
+          caSen: rmStrToSen(o.caRM),
+          balancingChargeSen: rmStrToSen(o.bcRM),
+          balancingAllowanceSen: rmStrToSen(o.baRM),
+          residualBfSen: rmStrToSen(o.reBfRM),
+          additionsSen: rmStrToSen(o.additionsRM),
+          disposedReSen: rmStrToSen(o.disposedReRM),
+          residualCfSen: rmStrToSen(o.reCfRM),
+          note: o.note || "external schedule",
+        }
+      : undefined,
+  };
+}
+
+export function toBusinessInput(b: BusinessUnit): FormBInput["businesses"][number] {
+  return {
+    label: b.label || "(unnamed business)",
+    netProfitSen: rmStrToSen(b.netProfitRM),
+    ...schedulableInput(b),
+    unabsorbedCaBfSen: rmStrToSen(b.unabsorbedCaBfRM),
+  };
+}
+
+// Form B bridge: per-business statutory + partnership shares + employment +
+// reliefs + rebates + CP500. Partnership LOSS shares (negative allocatedRM)
+// behave as current-year loss offsets; profit shares aggregate as income.
+export function buildFormBInput(eng: Engagement): FormBInput {
+  const { profitSen, lossSen } = splitShares(eng);
+  return {
+    ya: eng.ya,
+    businesses: eng.businesses.map(toBusinessInput),
+    partnershipShareSen: profitSen,
+    employmentSen: rmStrToSen(eng.employmentRM),
+    nonBusiness: eng.nonBusiness.map((l) => ({
+      label: l.label || "(unnamed)",
+      amountSen: rmStrToSen(l.amountRM),
+    })),
+    donationsSen: rmStrToSen(eng.donationsRM),
+    currentLossOffsetSen: rmStrToSen(eng.currentLossOffsetRM) + lossSen,
+    bfLosses: eng.bfLosses.map((l) => ({
+      yearOfAssessment: numOr0(l.ya),
+      amountBfSen: rmStrToSen(l.amountRM),
+    })),
+    reliefs: eng.reliefs.map((l) => ({
+      key: l.key,
+      label: l.label || l.key,
+      amountSen: rmStrToSen(l.amountRM),
+      capSen: l.capRM === "" ? undefined : rmStrToSen(l.capRM),
+    })),
+    rebatesSen: rmStrToSen(eng.rebatesRM),
+    cp500PaidSen: rmStrToSen(eng.cp500PaidRM),
+    whtCreditSen: rmStrToSen(eng.whtCreditRM),
+    bilateralCreditSen: rmStrToSen(eng.bilateralCreditRM),
+    priorCreditSen: eng.priorCreditVerified ? rmStrToSen(eng.priorCreditRM) : 0,
+  };
+}
+
+export function computeEngagementB(eng: Engagement): {
+  result: ReturnType<typeof computeFormB>;
+} {
+  return { result: computeFormB(buildFormBInput(eng)) };
+}
+
+// Signed partner-share split shared by the Form B bridge and the export:
+// profit shares aggregate as income, loss shares as current-year offsets.
+export function splitShares(eng: Engagement): { profitSen: Sen; lossSen: Sen } {
+  let profitSen = 0;
+  let lossSen = 0;
+  for (const s of eng.partnerShares) {
+    const sen = signedRmToSen(s.allocatedRM);
+    if (sen >= 0) profitSen += sen;
+    else lossSen += -sen;
+  }
+  return { profitSen, lossSen };
+}
+
+// Filing heads for any form: C/B chargeable→gross→payable; P reports
+// divisional with no tax (information return).
+export function headsOf(eng: Engagement): { ciSen: Sen; taxSen: Sen; payableSen: Sen } {
+  if (eng.formType === "P") {
+    const divisional = computeEngagementP(eng).results.reduce((a, r) => a + r.statutorySen, 0);
+    return { ciSen: divisional, taxSen: 0, payableSen: 0 };
+  }
+  const { result } = eng.formType === "B" ? computeEngagementB(eng) : computeEngagement(eng);
+  return { ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen };
+}
+
+export function toPartnershipInput(f: PartnershipFirm): PartnershipInput {
+  return {
+    label: f.name || "(unnamed firm)",
+    netProfitSen: signedRmToSen(f.netProfitRM),
+    ...schedulableInput(f),
+    unabsorbedCaBfSen: rmStrToSen(f.unabsorbedCaBfRM),
+    partners: f.partners.map((p) => ({
+      name: p.name || "(unnamed partner)",
+      salarySen: rmStrToSen(p.salaryRM),
+      interestSen: rmStrToSen(p.interestRM),
+      ratioPct: numOr0(p.ratioPct),
+    })),
+  };
+}
+
+export function computeEngagementP(eng: Engagement): {
+  results: ReturnType<typeof computePartnership>[];
+} {
+  return { results: eng.partnerships.map((f) => computePartnership(toPartnershipInput(f))) };
+}
+
 // Computation bridge diagnostics (Error at Seam): malformed non-blank RM
 // inputs are coerced to 0 by parseRm — this lists what was coerced so the
 // UI can warn. Empty strings are untouched fields, not errors.
@@ -177,6 +345,26 @@ export function diagnoseRmInputs(eng: Engagement): string[] {
     ["Prior losses b/f", eng.priorYear.lossesBfRM],
     ["Prior unabsorbed CA", eng.priorYear.unabsorbedCaBfRM],
     ["Prior RE b/f", eng.priorYear.reBfRM],
+    ["CP500 estimate", eng.cp500EstimateRM],
+    ["CP500 paid", eng.cp500PaidRM],
+    ["Employment income", eng.employmentRM],
+    ["Rebates (zakat fitrah)", eng.rebatesRM],
+    ...eng.reliefs.map((l, i): [string, string] => [`Relief ${l.label || `#${i + 1}`}`, l.amountRM]),
+    ...eng.partnerShares.flatMap((l, i): [string, string][] =>
+      signedIssue(`Partnership share #${i + 1}`, l.allocatedRM)
+    ),
+    ...eng.partnerships.flatMap((f, i): [string, string][] => [
+      ...signedIssue(`Firm ${f.name || `#${i + 1}`} net profit`, f.netProfitRM),
+      [`Firm ${f.name || `#${i + 1}`} unabsorbed CA b/f`, f.unabsorbedCaBfRM],
+      ...f.addBacks.map((l, j): [string, string] => [`Firm #${i + 1} add-back #${j + 1}`, l.amountRM]),
+      ...f.credits.map((l, j): [string, string] => [`Firm #${i + 1} credit #${j + 1}`, l.amountRM]),
+    ]),
+    ...eng.businesses.flatMap((b, i): [string, string][] => [
+      [`Business ${b.label || `#${i + 1}`} net profit`, b.netProfitRM],
+      [`Business ${b.label || `#${i + 1}`} unabsorbed CA b/f`, b.unabsorbedCaBfRM],
+      ...b.addBacks.map((l, j): [string, string] => [`Business #${i + 1} add-back #${j + 1}`, l.amountRM]),
+      ...b.credits.map((l, j): [string, string] => [`Business #${i + 1} credit #${j + 1}`, l.amountRM]),
+    ]),
     ...eng.addBacks.map((l, i): [string, string] => [`Add-back #${i + 1}`, l.amountRM]),
     ...eng.credits.map((l, i): [string, string] => [`Credit #${i + 1}`, l.amountRM]),
     ...eng.doubleDeductions.flatMap((l, i): [string, string][] => [

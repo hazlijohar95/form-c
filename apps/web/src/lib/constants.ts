@@ -35,3 +35,39 @@ export const CHECKLIST = [
   "Donations ≤10%, zakat ≤2.5% of aggregate",
   "SME 5 conditions evidenced; CP204 checked",
 ];
+
+// Form B reviewer checklist — mirrors CHECKLIST shape (10 items) so the
+// checks[] array, export gate, and badges work unchanged per form type.
+export const CHECKLIST_B = [
+  "Business P&L tied to TB — no estimates",
+  "Depreciation added back [s.39(1)(c)]",
+  "General provisions added back; only specific bad debts claimed [s.39(1)(m)]",
+  "Entertainment split 50% vs 100% proviso [s.39(1)(l)]",
+  "Each asset QE verified; small-value cap applied",
+  "Partnership share agrees to Form P allocation",
+  "Employment income agrees to EA form",
+  "B/F losses carry year-of-origin; expiry ≤10yr",
+  "Reliefs evidenced with receipts; caps applied",
+  "CP500 checked; rebates verified",
+];
+
+export function checklistFor(formType: "C" | "B" | "P"): string[] {
+  if (formType === "B") return CHECKLIST_B;
+  if (formType === "P") return CHECKLIST_P;
+  return CHECKLIST;
+}
+
+// Form P reviewer checklist — same 10-item shape so checks[], gates, and
+// badges work unchanged per form type.
+export const CHECKLIST_P = [
+  "Firm P&L tied to TB — no estimates",
+  "Depreciation added back [s.39(1)(c)]",
+  "General provisions added back; only specific bad debts claimed [s.39(1)(m)]",
+  "Entertainment split 50% vs 100% proviso [s.39(1)(l)]",
+  "Each asset QE verified; small-value cap applied",
+  "Partner salaries + interest agree to agreement",
+  "Profit-sharing ratios total 100%",
+  "Allocations foot to divisional income",
+  "Partner TIN/IC schedule complete",
+  "Unabsorbed CA c/f same firm source",
+];

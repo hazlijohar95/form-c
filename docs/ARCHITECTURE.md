@@ -41,6 +41,29 @@ agents later only around ingest, never around arithmetic.
 - CP204 s.107C penalty: 10% beyond 30% threshold; new-company + short-period rules noted
 - Filing: Form C 7 months from FYE close
 
+## Multi-form foundation (Client + Form B/P)
+
+- `Client` master (`apps/web/src/lib/clients.ts`, `formc.clients.v1`): company /
+  individual / partnership with members (directors/shareholders or
+  spouse/children/partners) rolling across YAs. `Engagement` carries
+  `formType: C | B | P` + `clientId`; stored v4 records default to `C`.
+- Onboarding first: tab `0 · Onboard` → `1 · Ingest` → …; per-form document
+  checklists (`lib/onboarding.ts`) sync missing required docs into [TO OBTAIN];
+  Ingest carries a receipt log for the same slots.
+- Engine split: shared core (`adjustedIncome`, `schedule3`, `losses.ts` FIFO
+  applicator) + form adapters — `computeFormC` untouched, `individual.ts`
+  (`computeFormB`, `allocatePartnershipShare`, `reliefCapFor`) owns graduated
+  bands (`rates.ts` YA-versioned, VERIFY-YA duty), s.46–49 relief caps,
+  rebates-against-tax, CP500. Individuals are non-SME for Sch 3 small-value.
+- Form P deepened (`partnership.ts`): firm-level divisional computation with
+  Para 75 CA discipline (excess CA rides forward; genuine trading losses
+  apportion to partners, never convert to CA), per-partner allocation with a
+  divisional footing delta, loss-share flow-through into Form B as
+  current-year offsets. `filingDeadline7Months` never throws on blank FYE.
+- Filing maps: `skill/formc-mytax/mytax-field-map.json` has `form` (e-C),
+  `formB` (e-B) and `formP` (e-P allocation) sections; the skill gates all three
+  uniformly (P refuses on non-trivial footing delta or off-100 ratios).
+
 ## Run
 
 ```bash

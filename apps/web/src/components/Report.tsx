@@ -1,9 +1,10 @@
 import { earningsStripping, formatRM } from "@formc/engine";
-import { CHECKLIST } from "../lib/types.js";
+import { checklistFor } from "../lib/types.js";
 import { plural } from "../lib/lists.js";
-import { rmStrToSen } from "../lib/rm.js";
+import { rmStrToSen, signedRmToSen } from "../lib/rm.js";
 import { buildMytaxExport, doubleLineTotal } from "../lib/myexport.js";
-import { deemed140B, useComputation, whtSectionList } from "../lib/computation.js";
+import { deemed140B, useComputation, computeEngagementB, computeEngagementP, whtSectionList } from "../lib/computation.js";
+import { copyText } from "../lib/clipboard.js";
 import type { Engagement, RunRecord } from "../lib/types.js";
 import { TableScroll } from "./ui/primitives.js";
 
@@ -11,6 +12,9 @@ export { whtSectionList };
 
 export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void; notify: (t: { title: string; detail?: string; err?: boolean }) => void }): JSX.Element {
   const { eng } = props;
+  if (eng.formType === "P") return <ReportP eng={eng} onChecklist={props.onChecklist} onSnapshot={props.onSnapshot} notify={props.notify} />;
+  if (eng.formType === "B") return <ReportB eng={eng} onChecklist={props.onChecklist} onSnapshot={props.onSnapshot} notify={props.notify} />;
+  const checklist = checklistFor(eng.formType);
   const { result, assetRows } = useComputation(eng);
   const deemed = deemed140B(eng);
   const stripSen = earningsStripping(rmStrToSen(eng.relatedInterestRM), rmStrToSen(eng.taxEbitdaRM));
@@ -30,34 +34,14 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
               {result.filingDeadline} · {result.smeQualifies ? "SME 15/17/24%" : "Flat 24%"}
             </div>
           </div>
-          <div className="toolbar no-print">
-            <button type="button" className="btn btn-xs" onClick={() => window.print()}>
-              Print
-            </button>
-            <button type="button" className="btn btn-xs" onClick={() => props.onSnapshot({ at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen })}>
-              Snapshot run
-            </button>
-            <button
-              type="button"
-              className="btn btn-xs primary"
-              disabled={doneCount < CHECKLIST.length}
-              title={doneCount < CHECKLIST.length ? `Complete ${CHECKLIST.length - doneCount} ${plural(CHECKLIST.length - doneCount, "checklist item")} to unlock export` : "Copy MyTax JSON to clipboard"}
-              aria-describedby="export-hint"
-              onClick={() => {
-                void navigator.clipboard.writeText(exportJson).then(
-                  () => props.notify({ title: "MyTax JSON copied", detail: "Paste into your export record." }),
-                  () => props.notify({ title: "Copy failed", detail: "Select the JSON below and copy manually.", err: true })
-                );
-              }}
-            >
-              Copy MyTax JSON
-            </button>
-          </div>
-          {doneCount < CHECKLIST.length && (
-            <p className="hint" id="export-hint">
-              Export unlocks when all {CHECKLIST.length} checklist items are done — {CHECKLIST.length - doneCount} remaining.
-            </p>
-          )}
+          <ReportToolbar
+            buildSnapshot={() => ({ at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen })}
+            onSnapshot={props.onSnapshot}
+            exportJson={exportJson}
+            doneCount={doneCount}
+            total={checklist.length}
+            notify={props.notify}
+          />
         </div>
 
         {result.findings.map((f) => (
@@ -257,17 +241,240 @@ export function Report(props: { eng: Engagement; onChecklist: (i: number, v: boo
         </table>
         </TableScroll>
 
-        <h3>Checklist — {doneCount}/{CHECKLIST.length}</h3>
-        {CHECKLIST.map((c, i) => (
-          <CheckRow
-            key={c}
-            label={c}
-            checked={eng.checks[i] ?? false}
-            on={(v) =>
-              props.onChecklist(i, v)
-            }
+        <ChecklistRows items={checklist} checks={eng.checks} onChecklist={props.onChecklist} />
+        <details>
+          <summary>View MyTax JSON</summary>
+          <pre className="export">{exportJson}</pre>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+// Form P report: information return — divisional income per firm plus the
+// partner allocation schedule. No bands, no tax: partners are taxed on Form B.
+function ReportP(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void; notify: (t: { title: string; detail?: string; err?: boolean }) => void }): JSX.Element {
+  const { eng } = props;
+  const { results } = computeEngagementP(eng);
+  const checklist = checklistFor(eng.formType);
+  const doneCount = eng.checks.filter(Boolean).length;
+  const exportJson = buildMytaxExport(eng);
+  const divisionalTotal = results.reduce((a, r) => a + r.statutorySen, 0);
+  return (
+    <div className="report">
+      <div className="card">
+        <div className="rephead">
+          <div>
+            <h2>
+              Partnership return (Form P) — {eng.companyName} {eng.regNo && `(${eng.regNo})`}
+            </h2>
+            <div className="hint">
+              Form P · YA {eng.ya} · information return — tax is charged at partner level (Form B)
+            </div>
+          </div>
+          <ReportToolbar
+            buildSnapshot={() => ({ at: new Date().toISOString(), ciSen: divisionalTotal, taxSen: 0, payableSen: 0 })}
+            onSnapshot={props.onSnapshot}
+            exportJson={exportJson}
+            doneCount={doneCount}
+            total={checklist.length}
+            notify={props.notify}
           />
+        </div>
+
+        {results.flatMap((r) => r.findings).map((f) => (
+          <div key={f} className="flag crit" role="alert">
+            {f}
+          </div>
         ))}
+
+        <h3>A · Divisional income per firm</h3>
+        <TableScroll label="Divisional income table">
+        <table className="w">
+          <tbody>
+            {results.map((r) => (
+              <tr key={r.label}>
+                <th scope="row">
+                  {r.label} <span className="hint">[adjusted {formatRM(r.adjustedSen)} − CA {formatRM(r.totalCaSen)}]</span>
+                </th>
+                <td className="rm">{formatRM(r.statutorySen)}</td>
+              </tr>
+            ))}
+            {results.length === 0 && (
+              <tr><td className="hint">No firms entered — see Entry tab.</td></tr>
+            )}
+            <tr>
+              <th scope="row"><strong>Divisional total</strong></th>
+              <td className="rm"><strong>{formatRM(divisionalTotal)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        </TableScroll>
+
+        <h3>B · Partner allocation schedule</h3>
+        <TableScroll label="Partner allocation table">
+        <table className="w">
+          <tbody>
+            {results.map((r) => r.allocations.map((a) => (
+              <tr key={`${r.label}-${a.name}`}>
+                <th scope="row">
+                  {a.name || "(unnamed)"} — {r.label}{" "}
+                  <span className="hint">[salary {formatRM(a.salarySen)} + interest {formatRM(a.interestSen)} + balance {formatRM(a.balanceShareSen)}]</span>
+                </th>
+                <td className="rm">{formatRM(a.totalSen)}</td>
+              </tr>
+            )))}
+          </tbody>
+        </table>
+        </TableScroll>
+
+        <ChecklistRows items={checklist} checks={eng.checks} onChecklist={props.onChecklist} />
+        <details>
+          <summary>View MyTax JSON</summary>
+          <pre className="export">{exportJson}</pre>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+function ReportB(props: { eng: Engagement; onChecklist: (i: number, v: boolean) => void; onSnapshot: (r: RunRecord) => void; notify: (t: { title: string; detail?: string; err?: boolean }) => void }): JSX.Element {
+  const { eng } = props;
+  const { result } = computeEngagementB(eng);
+  const checklist = checklistFor(eng.formType);
+  const doneCount = eng.checks.filter(Boolean).length;
+  const exportJson = buildMytaxExport(eng);
+  return (
+    <div className="report">
+      <div className="card">
+        <div className="rephead">
+          <div>
+            <h2>
+              Tax computation (Form B) — {eng.companyName} {eng.regNo && `(${eng.regNo})`}
+            </h2>
+            <div className="hint">
+              Form B · YA {eng.ya} · Individual graduated bands · CP500 (s.107B)
+            </div>
+          </div>
+          <ReportToolbar
+            buildSnapshot={() => ({ at: new Date().toISOString(), ciSen: result.chargeableSen, taxSen: result.grossTaxSen, payableSen: result.taxPayableSen })}
+            onSnapshot={props.onSnapshot}
+            exportJson={exportJson}
+            doneCount={doneCount}
+            total={checklist.length}
+            notify={props.notify}
+          />
+        </div>
+
+        {result.findings.map((f) => (
+          <div key={f} className="flag crit" role="alert">
+            {f}
+          </div>
+        ))}
+
+        <h3>A · Businesses + other sources</h3>
+        <TableScroll label="Business statutory table">
+        <table className="w">
+          <tbody>
+            {result.businesses.map((b) => (
+              <tr key={b.label}>
+                <th scope="row">
+                  {b.label} <span className="hint">[adjusted {formatRM(b.adjustedSen)} − CA {formatRM(b.totalCaSen)}]</span>
+                </th>
+                <td className="rm">{formatRM(b.statutorySen)}</td>
+              </tr>
+            ))}
+            {result.businesses.length === 0 && (
+              <tr><td className="hint">No businesses entered — see Entry tab.</td></tr>
+            )}
+            {eng.partnerShares.map((s) => (
+              <tr key={s.id}>
+                <th scope="row">
+                  {signedRmToSen(s.allocatedRM) < 0 ? "Loss share" : "Partnership share"} — {s.partnershipName || "(unnamed)"}{" "}
+                  <span className="hint">[{s.ratioPct || "?"}%{signedRmToSen(s.allocatedRM) < 0 ? " · offsets other income" : ""}]</span>
+                </th>
+                <td className="rm">{formatRM(signedRmToSen(s.allocatedRM))}</td>
+              </tr>
+            ))}
+            {eng.employmentRM !== "" && (
+              <tr>
+                <th scope="row">Employment income <span className="hint">[per EA]</span></th>
+                <td className="rm">{formatRM(rmStrToSen(eng.employmentRM))}</td>
+              </tr>
+            )}
+            {eng.nonBusiness.map((l) => (
+              <tr key={l.id}>
+                <th scope="row">Add: {l.label} <span className="hint">[per-source, floor NIL]</span></th>
+                <td className="rm">{formatRM(Math.max(0, rmStrToSen(l.amountRM)))}</td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row">Aggregate income</th>
+              <td className="rm">{formatRM(result.aggregateSen)}</td>
+            </tr>
+            {result.donationsAllowedSen > 0 && (
+              <tr>
+                <th scope="row"><span className="hint">of which: donations absorbed {formatRM(result.donationsAllowedSen)}</span></th>
+                <td className="rm"></td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        </TableScroll>
+
+        <h3>B · Reliefs → chargeable → payable</h3>
+        <TableScroll label="Reliefs to payable table">
+        <table className="w">
+          <tbody>
+            {result.reliefRows.map((r, i) => (
+              <tr key={`${r.key}-${i}`}>
+                <th scope="row">
+                  Less: {r.label || r.key}{" "}
+                  {r.allowedSen < r.claimedSen && (
+                    <span className="hint">[capped {formatRM(r.claimedSen)} → {formatRM(r.allowedSen)}]</span>
+                  )}
+                </th>
+                <td className="rm">({formatRM(r.allowedSen)})</td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row">
+                Chargeable income <span className="hint">({formatRM(result.chargeableExactSen)} → whole RM)</span>
+              </th>
+              <td className="rm">{formatRM(result.chargeableSen)}</td>
+            </tr>
+            <tr>
+              <th scope="row">Gross tax <span className="hint">[graduated bands]</span></th>
+              <td className="rm">{formatRM(result.grossTaxSen)}</td>
+            </tr>
+            {result.rebatesAllowedSen > 0 && (
+              <tr>
+                <th scope="row">Less: rebates (zakat fitrah) <span className="hint">[reduce tax]</span></th>
+                <td className="rm">({formatRM(result.rebatesAllowedSen)})</td>
+              </tr>
+            )}
+            <tr>
+              <th scope="row">
+                <strong>Balance of tax payable</strong>
+              </th>
+              <td className="rm">
+                <strong>{formatRM(result.taxPayableSen)}</strong>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">
+                Net cash {result.netCashSen <= 0 ? "(recoverable)" : "payable"}{" "}
+                <span className="hint">
+                  ({eng.priorCreditVerified ? "after verified prior credits" : "prior credits unverified — excluded"})
+                </span>
+              </th>
+              <td className="rm">{formatRM(result.netCashSen)}</td>
+            </tr>
+          </tbody>
+        </table>
+        </TableScroll>
+
+        <ChecklistRows items={checklist} checks={eng.checks} onChecklist={props.onChecklist} />
         <details>
           <summary>View MyTax JSON</summary>
           <pre className="export">{exportJson}</pre>
@@ -299,5 +506,70 @@ function CheckRow(props: { label: string; checked: boolean; on: (v: boolean) => 
       <input type="checkbox" checked={props.checked} onChange={(e) => props.on(e.target.checked)} />
       <span>{props.label}</span>
     </label>
+  );
+}
+
+type Notify = (t: { title: string; detail?: string; err?: boolean }) => void;
+
+// Print / snapshot / gated-export toolbar shared by the C, B, and P
+// reports — the snapshot payload is built at click time by each caller.
+function ReportToolbar(props: {
+  buildSnapshot: () => RunRecord;
+  onSnapshot: (r: RunRecord) => void;
+  exportJson: string;
+  doneCount: number;
+  total: number;
+  notify: Notify;
+}): JSX.Element {
+  const remaining = props.total - props.doneCount;
+  return (
+    <>
+      <div className="toolbar no-print">
+        <button type="button" className="btn btn-xs" onClick={() => window.print()}>
+          Print
+        </button>
+        <button type="button" className="btn btn-xs" onClick={() => props.onSnapshot(props.buildSnapshot())}>
+          Snapshot run
+        </button>
+        <button
+          type="button"
+          className="btn btn-xs primary"
+          disabled={props.doneCount < props.total}
+          title={props.doneCount < props.total ? `Complete ${remaining} ${plural(remaining, "checklist item")} to unlock export` : "Copy MyTax JSON to clipboard"}
+          aria-describedby="export-hint"
+          onClick={() => {
+            void copyText(props.exportJson).then((ok) =>
+              ok
+                ? props.notify({ title: "MyTax JSON copied", detail: "Paste into your export record." })
+                : props.notify({ title: "Copy failed", detail: "Select the JSON below and copy manually.", err: true })
+            );
+          }}
+        >
+          Copy MyTax JSON
+        </button>
+      </div>
+      {props.doneCount < props.total && (
+        <p className="hint" id="export-hint">
+          Export unlocks when all {props.total} checklist items are done — {remaining} remaining.
+        </p>
+      )}
+    </>
+  );
+}
+
+function ChecklistRows(props: { items: string[]; checks: boolean[]; onChecklist: (i: number, v: boolean) => void }): JSX.Element {
+  const done = props.checks.filter(Boolean).length;
+  return (
+    <>
+      <h3>Checklist — {done}/{props.items.length}</h3>
+      {props.items.map((c, i) => (
+        <CheckRow
+          key={c}
+          label={c}
+          checked={props.checks[i] ?? false}
+          on={(v) => props.onChecklist(i, v)}
+        />
+      ))}
+    </>
   );
 }

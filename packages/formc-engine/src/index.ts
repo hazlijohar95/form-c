@@ -18,6 +18,29 @@ export { assessWht, earningsStripping, deemedInterest140B, assessRelatedAccount,
 export { doubleTotal, entertainmentAddBack } from "./adjustedIncome.js";
 export { applyIncentives, validateGroupRelief } from "./incentives.js";
 export { computeSchedule3 } from "./schedule3.js";
+export { applyBfLosses } from "./losses.js";
+export type { LossYearInput } from "./losses.js";
+export { computePartnership } from "./partnership.js";
+export type {
+  FirmPartnerInput,
+  PartnershipInput,
+  PartnerAllocation,
+  PartnershipResult,
+} from "./partnership.js";
+export {
+  computeBusiness,
+  allocatePartnershipShare,
+  reliefCapFor,
+  computeFormB,
+} from "./individual.js";
+export type {
+  BusinessComputationInput,
+  BusinessComputationResult,
+  ReliefClaim,
+  FormBInput,
+  FormBResult,
+} from "./individual.js";
+export { individualBandsYA2025, individualBandsFor, PERSONAL_RELIEF_CAPS_RM } from "./rates.js";
 export { resolveSme, checkSme, smeBandsFor, smeBands, flatBand, smePortalBand } from "./sme.js";
 export { computeDisallowances } from "./disallowances.js";
 export {
@@ -111,6 +134,7 @@ export interface FormCResult {
 
 export function filingDeadline7Months(fyeTo: string): string {
   const d = new Date(fyeTo);
+  if (Number.isNaN(d.getTime())) return ""; // blank/cleared FYE: no deadline, never throw
   d.setMonth(d.getMonth() + 7);
   return d.toISOString().slice(0, 10);
 }

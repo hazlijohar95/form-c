@@ -25,3 +25,13 @@ allowed-tools:
 Load `mytax-field-map.json` in this directory. Units: export uses integer sen;
 divide by 100 for MyTax RM fields. Rate bands: SME 15/17/24 vs flat 24% must match
 `smeQualifies` — if MyTax shows a different band, stop and flag.
+
+For Form B exports (`"form": "B"`), use the `formB` section of the field map:
+per-business statutory blocks, partnership share vs Form P, s.46–49 reliefs
+(receipts required), graduated-band tax, zakat-fitrah rebate, CP500 credits.
+Same gates: checklist complete, verification green, preview only, never Hantar.
+
+For Form P exports (`"form": "P"`), use the `formP` section: firm divisional
+blocks plus the partner allocation schedule — each partner keys their
+`totalSen` into their own Form B. Refuse when `allocationDeltaSen` is not
+rounding-trivial or ratios do not total 100%.

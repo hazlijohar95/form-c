@@ -48,7 +48,7 @@ export function HomePage(props: {
                   aria-current={e.id === props.selectedId ? "true" : undefined}
                   onClick={() => props.onSelect(e.id)}
                 >
-                  <span className="n" aria-hidden="true">C</span>
+                  <span className="n" aria-hidden="true">{e.formType}</span>
                   <span className="meta">
                     <div className="name">{e.companyName || "(unnamed company)"}</div>
                   </span>
@@ -108,7 +108,7 @@ export function HomePage(props: {
                   aria-current={e.id === props.selectedId ? "true" : undefined}
                   onClick={() => props.onSelect(e.id)}
                 >
-                  <span className="n" aria-hidden="true">C</span>
+                  <span className="n" aria-hidden="true">{e.formType}</span>
                   <span className="meta">
                     <div className="name">{e.companyName || "(unnamed company)"} <span className="sub">· YA{e.ya}</span></div>
                   </span>

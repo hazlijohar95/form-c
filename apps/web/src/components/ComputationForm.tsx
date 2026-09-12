@@ -17,6 +17,7 @@ import type {
 } from "../lib/types.js";
 
 import { Field } from "./ui.js";
+import { BusinessForm, FirmsEditor } from "./BusinessForm.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
@@ -74,6 +75,8 @@ function AddBackEditor(props: { lines: AddBackLine[]; patch: Patch }): JSX.Eleme
 
 export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.Element {
   const { eng, patch } = props;
+  if (eng.formType === "B") return <BusinessForm eng={eng} patch={patch} />;
+  if (eng.formType === "P") return <FirmsEditor eng={eng} patch={patch} />;
   return (
     <div>
       <div className="card">

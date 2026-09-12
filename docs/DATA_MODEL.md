@@ -35,6 +35,11 @@ are synthetic.
 | OpenItem {whyBlocks, effect} | A1–A5 [TO OBTAIN]; unresolved items gate export |
 | PriorYear {reBf agreed?} | RE b/f modelled vs agreed; D-section agreement table |
 | RunRecord | snapshot history for the file |
+| Client {kind, members} | taxpayer master rolling across YAs; directors/shareholders for C, spouse/children/partners for B/P |
+| DocSlot {code, required, status} | onboarding checklist slots (Onboard tab) + Ingest receipt log; missing required docs sync into OpenItems |
+| BusinessUnit | one enterprise P&L inside a Form B engagement (own add-backs, Sch 3, unabsorbed CA) |
+| PartnerShare {ratio, firm totals} | apportioned Form P share with its allocation basis (salary off top, balance by ratio) |
+| ReliefLine {key, cap} | s.46–49 personal reliefs; catalog caps enforced, `other:` lines carry user caps |
 
 ## Rules the schema enforces
 
@@ -54,3 +59,9 @@ are synthetic.
 14. s.44A surrender ≤ 70% of surrenderer loss, conditions all-or-nothing.
 15. s.60F IHC: flat 24%, no offsets, no carry-forwards.
 16. No client data in repo: synthetic demo seed only; v1–v3 storage keys wiped, never migrated.
+17. Engagement carries formType (C/B/P, default C); clients live separately and link by clientId.
+18. Missing required source docs become OpenItems — computation starts on waived-or-received, never on assumed.
+19. Individual bands + relief caps are YA-versioned data (rates.ts VERIFY-YA duty), never hardcoded lore.
+20. Rebates (zakat fitrah) reduce tax, never income; CP500 is the individual instalment regime (CP204 is companies only).
+21. Partnership divisional losses apportion to partners (signed shares); Form B treats loss shares as current-year offsets, profit shares as income.
+22. Allocations must foot to divisional (modulo per-partner rounding); ratios must total 100% — both are verification gates, not warnings.

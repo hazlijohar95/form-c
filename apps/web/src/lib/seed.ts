@@ -1,5 +1,7 @@
-import { blankEngagement, uid } from "./types.js";
+import { blankBusinessUnit, blankEngagement, blankPartnershipFirm, standardReliefLines, uid } from "./types.js";
 import type { Engagement } from "./types.js";
+import { ensureDocuments } from "./onboarding.js";
+import { CHECKLIST_B, CHECKLIST_P } from "./constants.js";
 
 // Synthetic demo engagement — entirely fictional figures for a fictional
 // company. NEVER seed real client data here. Must reproduce:
@@ -62,5 +64,80 @@ export function demoSeed(): Engagement {
     openItems: [
       { id: uid(), title: "Agent Sch 3 + RE by pool at prior year-end", whyBlocks: "RE b/f modelled against filed CA", effect: "Tax range material — obtain schedule", resolved: false },
     ],
+  };
+}
+
+// Synthetic Form B demo — sole proprietor, one business + employment.
+// Must reproduce: statutory 156,000 − reliefs 13,000 → CI 143,000 →
+// tax 20,150 → less CP500 12,000 → balance 8,150.
+export function demoSeedB(): Engagement {
+  const e = blankEngagement();
+  const business = blankBusinessUnit("Nasi Lemak Stall");
+  business.netProfitRM = "120000";
+  business.addBacks = [
+    { id: uid(), description: "Depreciation of equipment", amountRM: "12000", section: "s.39(1)(c)" },
+  ];
+  const reliefs = standardReliefLines().filter((l) => l.key === "self" || l.key === "epf");
+  reliefs[0]!.amountRM = "9000";
+  reliefs[1]!.amountRM = "4000";
+  const docs = ensureDocuments([], "B").map((d) => ({ ...d, status: "received" as const }));
+  return {
+    ...e,
+    id: uid(),
+    formType: "B",
+    companyName: "Demo Ahmad (Sole Prop)",
+    regNo: "ROB 000000000",
+    ya: 2025,
+    fyeFrom: "2025-01-01",
+    fyeTo: "2025-12-31",
+    documents: docs,
+    businesses: [business],
+    partnerShares: [],
+    employmentRM: "24000",
+    reliefs,
+    rebatesRM: "0",
+    donationsRM: "0",
+    currentLossOffsetRM: "0",
+    bfLosses: [],
+    unabsorbedCaBfRM: "0",
+    cp500EstimateRM: "12000",
+    cp500PaidRM: "12000",
+    whtCreditRM: "0",
+    bilateralCreditRM: "0",
+    priorCreditRM: "0",
+    priorCreditVerified: false,
+    priorYear: { ciRM: "", taxRM: "", caRM: "", lossesBfRM: "", unabsorbedCaBfRM: "", reBfRM: "", agreed: true },
+    judgements: [],
+    openItems: [],
+    checks: CHECKLIST_B.map(() => true),
+  };
+}
+
+// Synthetic Form P demo — Ali & Abu Enterprise, 100,000 divisional split
+// 60/40 with no salaries: Ali 60,000 + Abu 40,000, zero delta.
+export function demoSeedP(): Engagement {
+  const e = blankEngagement();
+  const firm = blankPartnershipFirm("Ali & Abu Enterprise");
+  firm.netProfitRM = "100000";
+  firm.partners = [
+    { id: uid(), name: "Ali", salaryRM: "", interestRM: "", ratioPct: "60" },
+    { id: uid(), name: "Abu", salaryRM: "", interestRM: "", ratioPct: "40" },
+  ];
+  const docs = ensureDocuments([], "P").map((d) => ({ ...d, status: "received" as const }));
+  return {
+    ...e,
+    id: uid(),
+    formType: "P",
+    companyName: "Ali & Abu Enterprise",
+    regNo: "ROB 000000001",
+    ya: 2025,
+    fyeFrom: "2025-01-01",
+    fyeTo: "2025-12-31",
+    documents: docs,
+    partnerships: [firm],
+    priorYear: { ciRM: "", taxRM: "", caRM: "", lossesBfRM: "", unabsorbedCaBfRM: "", reBfRM: "", agreed: true },
+    judgements: [],
+    openItems: [],
+    checks: CHECKLIST_P.map(() => true),
   };
 }

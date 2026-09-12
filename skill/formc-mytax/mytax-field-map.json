@@ -52,5 +52,58 @@
     "kewangan tied to TB",
     "per-field read-back confirmed",
     "never submit without explicit approval"
-  ]
+  ],
+  "formB": {
+    "form": "B",
+    "units": "export sen / 100 = MyTax RM; chargeable already whole-RM truncated",
+    "screens": [
+      { "screen": "Profil individu", "fields": [
+        { "export": "company/regNo/ya (name + ROB/TIN)", "mytax": "Maklumat asas individu + perniagaan" }
+      ]},
+      { "screen": "Pendapatan perniagaan", "fields": [
+        { "export": "businesses[] {label, adjustedSen, totalCaSen, statutorySen}", "mytax": "Sumber perniagaan — satu blok setiap perusahaan" },
+        { "export": "partnershipShareSen + partnerShares[] {partnershipName, ratioPct}", "mytax": "Bahagian perkongsian (agrees to Form P allocation)" },
+        { "export": "employmentSen + nonBusiness[]", "mytax": "Penggajian (EA) + s.4(c)–(f)" },
+        { "export": "aggregateSen + chargeableIncomeSen", "mytax": "PENDAPATAN BERCUKAI" }
+      ]},
+      { "screen": "Pelepasan + cukai", "fields": [
+        { "export": "reliefs[] {key, label, amountSen} + reliefsAllowedSen + reliefCapped[]", "mytax": "Pelepasan individu s.46–49 (receipts required)" },
+        { "export": "grossTaxSen (graduated bands)", "mytax": "JUMLAH CUKAI DIKENAKAN" },
+        { "export": "rebatesAllowedSen", "mytax": "Rebat (zakat fitrah)" },
+        { "export": "cp500PaidSen/whtCreditSen/bilateralCreditSen", "mytax": "s.107B + s.110B/110 + s.132/133" },
+        { "export": "taxPayableSen", "mytax": "BAKI" }
+      ]}
+    ],
+    "gates": [
+      "all Form B checklist items done",
+      "no unresolved blocking items",
+      "verification panel all pass",
+      "relief receipts evidenced",
+      "partnership share agrees to Form P",
+      "user logged in manually",
+      "never submit without explicit approval"
+    ]
+  },
+  "formP": {
+    "form": "P",
+    "units": "export sen / 100 = MyTax RM; allocations already apportioned",
+    "screens": [
+      { "screen": "Maklumat perkongsian", "fields": [
+        { "export": "company/regNo/ya (firm name + ROB)", "mytax": "Maklumat asas perkongsian" },
+        { "export": "firms[] {label, adjustedSen, totalCaSen, statutorySen}", "mytax": "Pendapatan divisyenal setiap firma" }
+      ]},
+      { "screen": "Bahagian rakan kongsi", "fields": [
+        { "export": "firms[].allocations[] {name, salarySen, interestSen, balanceShareSen, totalSen}", "mytax": "Bahagian setiap rakan kongsi — each partner keys totalSen into their Form B" },
+        { "export": "firms[].allocationDeltaSen (must be ~0)", "mytax": " footing check before keying" }
+      ]}
+    ],
+    "gates": [
+      "all Form P checklist items done",
+      "ratios total 100% per firm",
+      "allocations foot to divisional",
+      "partner TIN/IC schedule complete",
+      "user logged in manually",
+      "never submit without explicit approval"
+    ]
+  }
 }

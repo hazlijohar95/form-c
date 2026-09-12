@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import type { Engagement } from "../lib/types.js";
+import type { Client, Engagement } from "../lib/types.js";
 import type { Tab } from "./tabs.js";
 import { FilingTabs } from "./FilingTabs.js";
 import { LiveRail } from "./LiveRail.js";
@@ -10,6 +10,7 @@ import type { ThemeMode } from "../lib/theme.js";
 const ComputationForm = lazy(() =>
   import("../components/ComputationForm.js").then((m) => ({ default: m.ComputationForm }))
 );
+const Onboard = lazy(() => import("../components/Onboard.js").then((m) => ({ default: m.Onboard })));
 const EKeying = lazy(() => import("../components/EKeying.js").then((m) => ({ default: m.EKeying })));
 const Ingest = lazy(() => import("../components/Ingest.js").then((m) => ({ default: m.Ingest })));
 const Registers = lazy(() =>
@@ -36,6 +37,8 @@ export function SessionView(props: {
   onExport: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  clients: Client[];
+  onClients: (next: Client[]) => void;
   notify: (t: { title: string; detail?: string; err?: boolean }) => void;
 }): JSX.Element {
   const { eng } = props;
@@ -65,6 +68,7 @@ export function SessionView(props: {
           <FilingTabs tab={props.tab} eng={eng} onSelect={props.onTab} />
           <Suspense fallback={<Skeleton />}>
             <section role="tabpanel" id="filing-panel" aria-labelledby={`tabbtn-${props.tab}`} aria-label="Filing step">
+              {props.tab === "onboard" && <Onboard eng={eng} patch={props.patch} clients={props.clients} onClients={props.onClients} notify={props.notify} />}
               {props.tab === "ingest" && <Ingest eng={eng} patch={props.patch} />}
               {props.tab === "entry" && <ComputationForm eng={eng} patch={props.patch} />}
               {props.tab === "registers" && <Registers eng={eng} patch={props.patch} />}

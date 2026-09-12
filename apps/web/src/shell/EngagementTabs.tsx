@@ -36,7 +36,7 @@ export function EngagementTabs(props: {
               title={label}
               onClick={() => props.onSelect(e.id)}
             >
-              <span className="tabbar-badge" aria-hidden="true">C</span>
+              <span className="tabbar-badge" aria-hidden="true">{e.formType}</span>
               <span className="tabbar-label">{e.companyName || "(unnamed company)"}</span>
             </button>
             <button

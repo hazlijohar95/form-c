@@ -166,6 +166,9 @@ export interface SourceLine {
 
 export interface Engagement {
   id: string;
+  formType: FormType; // C = company, B = individual with business, P = partnership return
+  clientId: string; // Client master row; "" = not yet linked
+  documents: DocSlot[]; // onboarding + source-doc slots (Ingest v2)
   companyName: string;
   regNo: string;
   ya: number;
@@ -218,6 +221,14 @@ export interface Engagement {
   cp204PaidRM: string;
   whtCreditRM: string;
   bilateralCreditRM: string;
+  cp500EstimateRM: string; // s.107B instalments (Form B individuals)
+  cp500PaidRM: string;
+  employmentRM: string; // employment income (Form B)
+  rebatesRM: string; // zakat fitrah + rebates reducing TAX (Form B)
+  reliefs: ReliefLine[]; // personal reliefs s.46–49 (Form B)
+  businesses: BusinessUnit[]; // per-enterprise P&L (Form B; one+ allowed)
+  partnerships: PartnershipFirm[]; // firm divisional computations (Form P / B partners)
+  partnerShares: PartnerShare[]; // apportioned Form P shares (Form B)
   checks: boolean[];
   ingestText: string;
   runs: RunRecord[];
@@ -227,19 +238,22 @@ export interface Engagement {
   updatedAt: string;
 }
 
-export { SECTIONS, CATEGORIES, CHECKLIST } from "./constants.js";
+export { SECTIONS, CATEGORIES, CHECKLIST, CHECKLIST_B, CHECKLIST_P, checklistFor } from "./constants.js";
 
-import { CHECKLIST } from "./constants.js";
+import { CHECKLIST, checklistFor } from "./constants.js";
 
 import { numOr0, rmStrToSen } from "./rm.js";
 import { uid } from "./lists.js";
 
-export { rmStrToSen, numOr0, senToRMString, hasDebitBalance } from "./rm.js";
+export { rmStrToSen, numOr0, senToRMString, hasDebitBalance, signedRmToSen, isSignedRm } from "./rm.js";
 export { uid, updateById, removeById } from "./lists.js";
 
 export function blankEngagement(): Engagement {
   return {
     id: uid(),
+    formType: "C",
+    clientId: "",
+    documents: [],
     companyName: "New Client Sdn Bhd",
     regNo: "",
     ya: 2025,
@@ -316,6 +330,14 @@ export function blankEngagement(): Engagement {
     cp204PaidRM: "0",
     whtCreditRM: "0",
     bilateralCreditRM: "0",
+    cp500EstimateRM: "0",
+    cp500PaidRM: "0",
+    employmentRM: "",
+    rebatesRM: "0",
+    reliefs: [],
+    businesses: [],
+    partnerships: [],
+    partnerShares: [],
     checks: CHECKLIST.map(() => false),
     ingestText: "",
     runs: [],
@@ -346,5 +368,176 @@ export function toAssetInput(a: AssetLine): AssetInput {
     inUseAtYearEnd: true,
     monthsInUse: a.monthsInUse === "" ? undefined : numOr0(a.monthsInUse),
     disposalPriceSen: a.disposalPriceRM === "" ? undefined : rmStrToSen(a.disposalPriceRM),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-form foundation (Phase 1): Client master + formType + onboarding.
+// Form C behaviour is unchanged — every new field defaults so stored v4
+// records and blankEngagement() merge cleanly (see store.ts normalize).
+// ---------------------------------------------------------------------------
+
+export type FormType = "C" | "B" | "P";
+
+export type ClientKind = "company" | "individual" | "partnership";
+
+export interface ClientMember {
+  id: string;
+  role: "director" | "shareholder" | "spouse" | "child" | "partner";
+  name: string;
+  sharePct: string; // directors / shareholders / partners
+  icNo: string;
+  note: string;
+}
+
+export interface Client {
+  id: string;
+  kind: ClientKind;
+  name: string; // company name, individual name, or firm name
+  tin: string;
+  regNo: string; // ROC / ROB number; "" for individuals
+  icNo: string; // individual / partner IC
+  contact: string;
+  notes: string;
+  members: ClientMember[];
+  updatedAt: string;
+}
+
+export type DocStatus = "missing" | "received" | "waived";
+
+export interface DocSlot {
+  id: string;
+  code: string; // stable key matching ONBOARDING_DOCS, e.g. "tb", "fa-register"
+  label: string;
+  required: boolean;
+  status: DocStatus;
+  note: string;
+}
+
+export interface ReliefLine {
+  id: string;
+  key: string; // PERSONAL_RELIEF_CAPS_RM key or `other:<label>`
+  label: string;
+  amountRM: string;
+  capRM: string; // user-set cap for `other:` lines; "" = catalog cap
+}
+
+export interface BusinessUnit {
+  id: string;
+  label: string;
+  netProfitRM: string;
+  addBacks: AddBackLine[];
+  credits: CreditLine[];
+  doubleDeductions: DoubleDeductionLine[];
+  assets: AssetLine[];
+  schedule3: Schedule3Override;
+  unabsorbedCaBfRM: string;
+}
+
+export interface FirmPartner {
+  id: string;
+  name: string;
+  salaryRM: string;
+  interestRM: string;
+  ratioPct: string;
+}
+
+export interface PartnershipFirm {
+  id: string;
+  name: string;
+  netProfitRM: string;
+  addBacks: AddBackLine[];
+  credits: CreditLine[];
+  doubleDeductions: DoubleDeductionLine[];
+  assets: AssetLine[];
+  schedule3: Schedule3Override;
+  unabsorbedCaBfRM: string;
+  partners: FirmPartner[];
+}
+
+export interface PartnerShare {
+  id: string;
+  partnershipName: string;
+  allocatedRM: string; // apportioned share, SIGNED: losses flow as current-year offsets
+  ratioPct: string;
+  salaryRM: string;
+  interestRM: string;
+  firmAdjustedRM: string; // firm's divisional adjusted income (allocation basis)
+  firmSalariesRM: string; // all partners' salaries (allocation basis)
+  firmInterestRM: string; // all partners' interest on capital (allocation basis)
+}
+
+export function blankPartnershipFirm(name: string): PartnershipFirm {
+  return {
+    id: uid(),
+    name,
+    netProfitRM: "",
+    addBacks: [],
+    credits: [],
+    doubleDeductions: [],
+    assets: [],
+    schedule3: blankSchedule3(),
+    unabsorbedCaBfRM: "0",
+    partners: [],
+  };
+}
+
+export function blankSchedule3(): Schedule3Override {
+  return {
+    enabled: false, caRM: "0", bcRM: "0", baRM: "0", reBfRM: "0",
+    additionsRM: "0", disposedReRM: "0", reCfRM: "0", note: "",
+  };
+}
+
+export function blankBusinessUnit(label: string): BusinessUnit {
+  return {
+    id: uid(),
+    label,
+    netProfitRM: "",
+    addBacks: [],
+    credits: [],
+    doubleDeductions: [],
+    assets: [],
+    schedule3: blankSchedule3(),
+    unabsorbedCaBfRM: "0",
+  };
+}
+
+/** Standard relief rows with blank amounts — reviewer keys receipts. */
+export function standardReliefLines(): ReliefLine[] {
+  const rows: [string, string][] = [
+    ["self", "Self"],
+    ["spouse", "Spouse"],
+    ["child", "Child"],
+    ["epf", "EPF"],
+    ["lifeInsurance", "Life insurance / takaful"],
+    ["socso", "SOCSO / EIS"],
+    ["lifestyle", "Lifestyle"],
+    ["educationSelf", "Education (self)"],
+    ["medicalSelf", "Medical (self/spouse/child)"],
+    ["childcare", "Childcare"],
+    ["sspn", "SSPN"],
+    ["prs", "PRS"],
+  ];
+  return rows.map(([key, label]) => ({ id: uid(), key, label, amountRM: "", capRM: "" }));
+}
+
+export function blankClient(kind: ClientKind): Client {
+  const names: Record<ClientKind, string> = {
+    company: "New Client Sdn Bhd",
+    individual: "New Individual Client",
+    partnership: "New Partnership Firm",
+  };
+  return {
+    id: uid(),
+    kind,
+    name: names[kind],
+    tin: "",
+    regNo: "",
+    icNo: "",
+    contact: "",
+    notes: "",
+    members: [],
+    updatedAt: new Date().toISOString(),
   };
 }

@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { formatRM } from "@formc/engine";
 import { hintFor, parseTrialBalance } from "../lib/ingest.js";
+import { docsFor, ensureDocuments, setDocStatus } from "../lib/onboarding.js";
 import { SECTIONS } from "../lib/types.js";
+import type { DocSlot } from "../lib/types.js";
 import { senToRMString } from "../lib/rm.js";
 import { uid } from "../lib/lists.js";
 import type { Engagement } from "../lib/types.js";
@@ -39,6 +41,39 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
   }
 
   return (
+    <div>
+    <div className="card">
+      <h3>Source documents — receipt log</h3>
+      <p className="hint">
+        Tick off what the client actually sent. Missing required docs block computation —
+        sync them to [TO OBTAIN] from the Onboard tab.
+      </p>
+      <div className="toolbar no-print">
+        <button type="button" className="btn btn-xs" onClick={() => patch({ documents: ensureDocuments(eng.documents, eng.formType) })}>
+          Load {eng.formType} checklist
+        </button>
+      </div>
+      {docsFor(eng.formType).map((def) => {
+        const slot = eng.documents.find((d) => d.code === def.code);
+        const status: DocSlot["status"] = slot?.status ?? "missing";
+        return (
+          <div key={def.code} className="vrow">
+            <span>{def.label}{def.required && <span className="hint"> · required</span>}</span>
+            <span className="detail">
+              <select
+                value={status}
+                onChange={(e) => patch({ documents: setDocStatus(eng.documents, def, e.target.value as DocSlot["status"]) })}
+                aria-label={`${def.label} receipt status`}
+              >
+                <option value="missing">Missing</option>
+                <option value="received">Received</option>
+                <option value="waived">Waived</option>
+              </select>
+            </span>
+          </div>
+        );
+      })}
+    </div>
     <div className="card">
       <h3>Ingest — trial balance paste</h3>
       <p className="hint">
@@ -102,6 +137,7 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
         </table>
         </div>
       )}
+    </div>
     </div>
   );
 }

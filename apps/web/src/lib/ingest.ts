@@ -12,17 +12,19 @@ export function parseTrialBalance(text: string): ProposedLine[] {
   for (const raw of text.split("\n")) {
     const line = raw.trim();
     if (!line) continue;
-    // Match trailing number: "Depreciation 50,000.00" or "Sales (1,200,000)"
-    const m = line.match(/^(.*?)\s+(\(?[\d,]+(?:\.\d{1,2})?)\)?\s*$/);
-    if (!m || !m[1] || !m[2]) continue;
+    // Match trailing number: "Depreciation 50,000.00" or "Sales (1,200,000)".
+    // Parentheses must wrap the AMOUNT to mark a credit — parens in the
+    // label (e.g. "Provision (doubtful) 5000") stay a debit.
+    const m = line.match(/^(.*?)\s+(\()?([\d,]+(?:\.\d{1,2})?)(\))?\s*$/);
+    if (!m || !m[1] || !m[3]) continue;
     const label = m[1].trim();
     if (label.length < 2) continue;
-    const negative = line.includes("(") && line.includes(")");
-    const amountSen = decimalToSen(m[2]);
+    const negative = m[2] === "(" && m[4] === ")";
+    const amountSen = decimalToSen(m[3]);
     if (amountSen <= 0) continue;
     out.push({
       // Stable across re-parses so "posted" state in Ingest.tsx survives edits.
-      id: `tb:${label}:${m[2]}:${negative ? "c" : "d"}`,
+      id: `tb:${label}:${m[3]}:${negative ? "c" : "d"}`,
       label,
       amountSen,
       kind: negative ? "credit" : "debit",

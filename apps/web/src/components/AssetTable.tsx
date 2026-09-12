@@ -16,10 +16,46 @@ const helper = createColumnHelper<AssetLine>();
 
 // Asset schedule: TanStack Table rows + validated RmInput cells.
 // Parent Engagement stays source of truth — fields patch upward.
-export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.Element {
-  const { assets, patch } = props;
-  const set = (id: string, p: Partial<AssetLine>): void =>
-    patch({ assets: updateById(assets, id, p) });
+export function blankAssetLine(): AssetLine {
+  return {
+    id: uid(),
+    description: "",
+    category: "cat2-14",
+    costRM: "0",
+    allowancesBfRM: "0",
+    isNew: true,
+    isHirePurchase: false,
+    hpPaidPeriodRM: "",
+    hpPaidTotalRM: "",
+    isMotorNonCommercial: false,
+    motorTotalCostRM: "",
+    isCommercialVehicle: false,
+    monthsInUse: "",
+    disposalPriceRM: "",
+    qualifyingPct: "100",
+  };
+}
+
+// `onAssets` scopes the table to a nested asset list (e.g. a Form B
+// business unit). Without it the table patches top-level eng.assets —
+// existing Company usage is unchanged.
+export function AssetTable(props: { assets: AssetLine[]; patch: Patch; onAssets?: (next: AssetLine[]) => void }): JSX.Element {
+  const { assets, patch, onAssets } = props;
+  const set = (id: string, p: Partial<AssetLine>): void => {
+    const next = updateById(assets, id, p);
+    if (onAssets) onAssets(next);
+    else patch({ assets: next });
+  };
+  function remove(id: string): void {
+    const next = removeById(assets, id);
+    if (onAssets) onAssets(next);
+    else patch({ assets: next });
+  }
+  function add(): void {
+    const next = [...assets, blankAssetLine()];
+    if (onAssets) onAssets(next);
+    else patch({ assets: next });
+  }
 
   const columns = useMemo(
     () => [
@@ -73,7 +109,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
           <button
             type="button"
             className="btn btn-xs ghost danger"
-            onClick={() => patch({ assets: removeById(assets, ctx.row.original.id) })}
+            onClick={() => remove(ctx.row.original.id)}
             aria-label={`Remove asset ${ctx.row.original.description || "(unnamed)"}`}
           >
             <span aria-hidden="true">×</span>
@@ -210,30 +246,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
       ))}
       <button
         className="btn add-action"
-        onClick={() =>
-          patch({
-            assets: [
-              ...assets,
-              {
-                id: uid(),
-                description: "",
-                category: "cat2-14",
-                costRM: "0",
-                allowancesBfRM: "0",
-                isNew: true,
-                isHirePurchase: false,
-                hpPaidPeriodRM: "",
-                hpPaidTotalRM: "",
-                isMotorNonCommercial: false,
-                motorTotalCostRM: "",
-                isCommercialVehicle: false,
-                monthsInUse: "",
-                disposalPriceRM: "",
-                qualifyingPct: "100",
-              },
-            ],
-          })
-        }
+        onClick={add}
       >
         + Asset
       </button>
