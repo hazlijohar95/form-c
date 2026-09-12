@@ -73,31 +73,60 @@ export default {
       });
     }
 
-    if (url.pathname === "/api/health") return json(req, env, { ok: true });
+    if (url.pathname === "/api/health") {
+      if (url.searchParams.get("db") === "1") {
+        if (!env.DB) return json(req, env, { ok: false, db: false, error: "db not bound" }, 500);
+        try {
+          await env.DB.prepare("SELECT 1 as ok").first();
+          return json(req, env, { ok: true, db: true });
+        } catch (e) {
+          return json(req, env, { ok: false, db: false, error: e instanceof Error ? e.message : "db failed" }, 500);
+        }
+      }
+      return json(req, env, { ok: true, db: Boolean(env.DB) });
+    }
 
     if (!url.pathname.startsWith("/api/")) return json(req, env, { error: "not found" }, 404);
     if (!authorized(req, env)) return json(req, env, { error: "unauthorized" }, 401);
 
     if (url.pathname === "/api/engagements" && req.method === "GET") {
-      const rows = await env.DB.prepare(
-        "SELECT data FROM engagements ORDER BY updated_at DESC LIMIT 100"
-      ).all<{ data: string }>();
-      const list = (rows.results ?? []).map((r) => JSON.parse(r.data));
-      return json(req, env, list);
+      if (!env.DB) return json(req, env, { error: "db not bound — run wrangler dev / deploy with D1" }, 500);
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT data FROM engagements ORDER BY updated_at DESC LIMIT 100"
+        ).all<{ data: string }>();
+        const list: unknown[] = [];
+        let skipped = 0;
+        for (const r of rows.results ?? []) {
+          try {
+            list.push(JSON.parse(r.data));
+          } catch {
+            skipped += 1;
+          }
+        }
+        return json(req, env, list, 200);
+      } catch (e) {
+        return json(req, env, { error: "db query failed", detail: e instanceof Error ? e.message : "unknown" }, 500);
+      }
     }
 
     const m = url.pathname.match(/^\/api\/engagements\/([^/]+)$/);
     if (m) {
       const id = m[1];
       if (!ID_RE.test(id)) return json(req, env, { error: "bad id" }, 400);
+      if (!env.DB) return json(req, env, { error: "db not bound" }, 500);
       if (req.method === "GET") {
-        const row = await env.DB.prepare("SELECT data FROM engagements WHERE id = ?")
-          .bind(id)
-          .first<{ data: string }>();
-        if (!row) return json(req, env, { error: "not found" }, 404);
-        return new Response(row.data, {
-          headers: { "content-type": "application/json", "cache-control": "no-store", ...corsHeaders(req, env) },
-        });
+        try {
+          const row = await env.DB.prepare("SELECT data FROM engagements WHERE id = ?")
+            .bind(id)
+            .first<{ data: string }>();
+          if (!row) return json(req, env, { error: "not found" }, 404);
+          return new Response(row.data, {
+            headers: { "content-type": "application/json", "cache-control": "no-store", ...corsHeaders(req, env) },
+          });
+        } catch (e) {
+          return json(req, env, { error: "db query failed", detail: e instanceof Error ? e.message : "unknown" }, 500);
+        }
       }
       if (req.method === "PUT") {
         const len = Number(req.headers.get("content-length") ?? 0);
@@ -114,15 +143,23 @@ export default {
         if (raw.length > MAX_BODY_BYTES) return json(req, env, { error: "body too large" }, 413);
         const ya = Number.isInteger(body.ya) ? (body.ya as number) : 2025;
         const name = body.company_name ?? body.companyName ?? "";
-        await env.DB.prepare(
-          "INSERT INTO engagements (id, ya, company_name, data, updated_at) VALUES (?, ?, ?, ?, datetime('now')) ON CONFLICT(id) DO UPDATE SET ya=excluded.ya, company_name=excluded.company_name, data=excluded.data, updated_at=datetime('now')"
-        )
-          .bind(id, ya, String(name).slice(0, 200), raw)
-          .run();
+        try {
+          await env.DB.prepare(
+            "INSERT INTO engagements (id, ya, company_name, data, updated_at) VALUES (?, ?, ?, ?, datetime('now')) ON CONFLICT(id) DO UPDATE SET ya=excluded.ya, company_name=excluded.company_name, data=excluded.data, updated_at=datetime('now')"
+          )
+            .bind(id, ya, String(name).slice(0, 200), raw)
+            .run();
+        } catch (e) {
+          return json(req, env, { error: "db write failed", detail: e instanceof Error ? e.message : "unknown" }, 500);
+        }
         return json(req, env, { ok: true, id });
       }
       if (req.method === "DELETE") {
-        await env.DB.prepare("DELETE FROM engagements WHERE id = ?").bind(id).run();
+        try {
+          await env.DB.prepare("DELETE FROM engagements WHERE id = ?").bind(id).run();
+        } catch (e) {
+          return json(req, env, { error: "db delete failed", detail: e instanceof Error ? e.message : "unknown" }, 500);
+        }
         return json(req, env, { ok: true, id });
       }
     }

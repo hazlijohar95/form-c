@@ -12,8 +12,18 @@ const engagementRoute = createRoute({
   path: "/engagement/$engagementId/$tab",
   component: App,
 });
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: App,
+});
+const settingsSectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/$section",
+  component: App,
+});
 
-const routeTree = rootRoute.addChildren([indexRoute, engagementRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, engagementRoute, settingsRoute, settingsSectionRoute]);
 
 export const router = createRouter({ routeTree });
 

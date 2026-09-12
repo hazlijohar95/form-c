@@ -1,0 +1,8 @@
+@layer components {
+  [data-component="provider-icon"] {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--text-weak);
+  }
+}

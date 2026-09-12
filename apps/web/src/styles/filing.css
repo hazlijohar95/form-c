@@ -1,0 +1,241 @@
+@layer components {
+/*
+ * Filing views. Depth follows the v2 ladder, one rung per nesting level:
+ *   page  bg-base   →  .panel  layer-01  →  .card  layer-02  →  accents layer-03
+ * Interaction states use the alpha overlay tokens instead of swapping rung, so
+ * hover stays visible no matter which layer an element sits on. (Swapping to a
+ * sibling rung is what makes hover disappear once page and panel converge.)
+ */
+.card {
+  background-color: var(--v2-background-bg-layer-02);
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  min-width: 0;
+  position: relative;
+}
+.card h3 { margin: 0 0 12px; font-size: var(--fs-small); text-transform: uppercase; letter-spacing: 0.06em; color: var(--v2-text-text-muted); }
+.card h4, .assetbox h4 { margin-block-start: 24px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--v2-text-text-muted); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.card-head h3 { margin: 0; }
+.card-actions { display: flex; gap: 8px; align-items: center; }
+.card[data-variant="info"]::before, .card[data-variant="warning"]::before,
+.card[data-variant="error"]::before, .card[data-variant="success"]::before {
+  content: ""; position: absolute; inset-inline-start: 0; top: 12px; bottom: 12px; width: 2px; border-radius: 2px;
+}
+.card[data-variant="info"]::before { background-color: var(--v2-state-fg-info); }
+.card[data-variant="warning"]::before { background-color: var(--v2-state-fg-warning); }
+.card[data-variant="error"]::before { background-color: var(--v2-state-fg-danger); }
+.card[data-variant="success"]::before { background-color: var(--v2-state-fg-success); }
+.card[data-variant="error"] { border-color: var(--v2-state-border-danger); }
+.card[data-variant="warning"] { border-color: var(--v2-state-border-warning); }
+/* `attr()` resolves against the element that owns the pseudo-element, so
+ * data-step must sit on the h3 itself — reading it off an ancestor .card
+ * silently yields an empty string and renders a bare ". " prefix. */
+.card h3[data-step]::before { content: attr(data-step) ". "; color: var(--v2-text-text-faint); font-weight: 400; }
+.progress { height: 6px; border-radius: 99px; background-color: var(--v2-background-bg-layer-03); overflow: hidden; margin: 10px 0 4px; }
+.progress-fill { height: 100%; background-color: var(--v2-background-bg-accent); border-radius: 99px; transition: width 200ms ease-out; }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.steps button.row {
+  inline-size: 100%; display: flex; gap: 12px; align-items: center; text-align: start;
+  padding: 9px 10px; border-radius: var(--radius-lg); cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: var(--v2-text-text-base);
+  font-size: var(--fs-base); min-height: var(--touch);
+}
+.steps button.row:hover { background-color: var(--v2-overlay-simple-overlay-hover); }
+.steps button.row:active { background-color: var(--v2-overlay-simple-overlay-pressed); }
+.steps .n { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--v2-border-border-strong); display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-xs); flex: none; }
+.steps .meta .sub { font-size: var(--fs-small); color: var(--v2-text-text-muted); }
+
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .row3, .row2 { grid-template-columns: minmax(0, 1fr); } }
+
+.tscroll { overflow-x: auto; border-radius: var(--radius-lg); }
+table.w { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-small); min-inline-size: 480px; }
+table.w th { text-align: start; color: var(--v2-text-text-muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--v2-border-border-muted); white-space: nowrap; }
+table.w td { padding: 7px 8px; border-bottom: 1px solid var(--v2-border-border-muted); vertical-align: middle; }
+td.rm { text-align: end; white-space: nowrap; }
+/* Numeric column headers align with the figures they head. */
+th.num-h { text-align: end; }
+
+/* Legacy button. Mirrors ButtonV2's neutral/contrast/ghost/danger treatment so
+ * the two read identically where both appear; prefer ButtonV2 in new code. */
+.btn {
+  appearance: none; border: 0;
+  background-color: var(--v2-background-bg-button-neutral);
+  color: var(--v2-text-text-base);
+  box-shadow: var(--v2-elevation-button-neutral);
+  border-radius: var(--radius-md); padding: 8px 14px; font-size: var(--fs-base); cursor: pointer;
+  min-height: var(--touch); display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover:not(:disabled) { background-color: var(--v2-overlay-simple-overlay-hover); }
+.btn:active:not(:disabled) { background-color: var(--v2-overlay-simple-overlay-pressed); }
+.btn.primary {
+  background-color: var(--v2-background-bg-contrast);
+  color: var(--v2-text-text-contrast);
+  box-shadow: var(--v2-elevation-button-contrast);
+  font-weight: 600;
+}
+.btn.primary:hover:not(:disabled) { background-color: var(--v2-background-bg-contrast); filter: brightness(1.08); }
+.btn.ghost { background: transparent; box-shadow: none; }
+.btn.ghost:hover:not(:disabled) { background-color: var(--v2-overlay-simple-overlay-hover); box-shadow: none; }
+.btn.danger { color: var(--v2-state-fg-danger); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-xs { min-height: 32px; padding: 4px 10px; }
+.toolbar { display: flex; gap: 12px; justify-content: flex-end; margin-block-start: 16px; flex-wrap: wrap; }
+
+/* Sticky tab strip: the background must be opaque and match the scroll
+ * container (.panel = layer-01) so rows pass cleanly underneath. */
+.tabs {
+  display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--v2-border-border-muted);
+  position: sticky; top: 0; z-index: 5;
+  background-color: var(--v2-background-bg-layer-01);
+  padding-block-start: 4px;
+}
+.tabs .tab { appearance: none; border: 0; background: transparent; color: var(--v2-text-text-muted); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 10px 12px; font-size: var(--fs-base); cursor: pointer; min-height: var(--touch); display: inline-flex; align-items: center; gap: 8px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs .tab:hover { color: var(--v2-text-text-base); background-color: var(--v2-overlay-simple-overlay-hover); }
+.tabs .tab[aria-selected="true"] { color: var(--v2-text-text-base); border-bottom-color: var(--v2-background-bg-accent); font-weight: 600; }
+/* Step numbers carry meaning (they match the step list), so they hold the
+ * 4.5:1 text minimum rather than being dimmed to `faint`. */
+.tabs .tab .step-n { color: var(--v2-text-text-muted); font-size: var(--fs-xs); }
+.tabs .tab .badge { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--v2-text-text-muted); border: 1px solid var(--v2-border-border-muted); border-radius: 99px; padding: 1px 7px; background-color: var(--v2-background-bg-layer-02); }
+
+.flag { border-inline-start: 3px solid var(--v2-state-fg-warning); padding: 8px 10px; background-color: var(--v2-state-bg-warning); border-start-end-radius: var(--radius-lg); border-end-end-radius: var(--radius-lg); margin: 6px 0; font-size: var(--fs-small); }
+.flag.crit { border-inline-start-color: var(--v2-state-fg-danger); background-color: var(--v2-state-bg-danger); }
+.ok { color: var(--v2-state-fg-success); font-weight: 600; }
+.check { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; font-size: var(--fs-small); min-height: var(--touch); cursor: pointer; }
+.check input { width: 20px; height: 20px; flex: none; accent-color: var(--v2-background-bg-accent); min-height: 0; box-shadow: none; }
+/* Label/value rows: .kv is the neutral pair, .vrow adds pass/fail state. */
+.kv, .vrow { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--v2-border-border-muted); font-size: var(--fs-small); flex-wrap: wrap; }
+.kv:last-child, .vrow:last-child { border-bottom: 0; }
+.hint { font-size: var(--fs-small); color: var(--v2-text-text-muted); }
+
+/* A failing check must not read the same as a passing one, so the label takes
+ * the danger token. Passing rows just inherit the base text colour. The value
+ * stays base either way, so the figure itself is never tinted. */
+.vrow .detail { color: var(--v2-text-text-muted); font-family: var(--font-mono); }
+.vrow.fail { color: var(--v2-state-fg-danger); }
+.vrow.fail .detail { color: var(--v2-text-text-base); }
+.status-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-small); color: var(--v2-text-text-muted); }
+.status-dot .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--v2-icon-icon-muted); }
+.status-dot.on .dot { background-color: var(--v2-state-fg-success); }
+.status-dot.err { color: var(--v2-state-fg-danger); }
+.status-dot.err .dot { background-color: var(--v2-state-fg-danger); }
+
+.empty { text-align: center; padding: 32px 24px; gap: 8px; display: flex; flex-direction: column; align-items: center; }
+.empty .t { font-size: var(--fs-base); font-weight: 600; }
+.empty .d { font-size: var(--fs-small); color: var(--v2-text-text-muted); max-width: 40ch; }
+.eicon { font-size: 22px; color: var(--v2-icon-icon-muted); }
+@keyframes pulse-opacity { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.skeleton { border: 1px solid var(--v2-border-border-muted); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; background-color: var(--v2-background-bg-layer-02); animation: pulse-opacity 2s ease-in-out infinite; }
+.skeleton .bar { height: 12px; border-radius: var(--radius-md); background-color: var(--v2-background-bg-layer-03); margin: 8px 0; }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+/* Floating layers: layer-01 + the matching v2 elevation, per tooltip/menu/dialog. */
+.toasts { position: fixed; inset-inline-end: 16px; inset-block-end: 16px; z-index: 60; display: flex; flex-direction: column; gap: 12px; max-width: min(400px, calc(100vw - 32px)); }
+.toast {
+  position: relative;
+  background-color: var(--v2-background-bg-layer-01);
+  color: var(--v2-text-text-base);
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px; padding: 12px 14px; padding-inline-end: 40px;
+  box-shadow: var(--v2-elevation-floating);
+}
+.toast.err { border-color: var(--v2-state-border-danger); }
+.toast-x { position: absolute; inset-inline-end: 6px; inset-block-start: 6px; min-width: 32px; min-height: 32px; border-radius: var(--radius-lg); border: 0; background: transparent; color: var(--v2-icon-icon-muted); cursor: pointer; }
+.toast-x:hover { background-color: var(--v2-overlay-simple-overlay-hover); color: var(--v2-text-text-base); }
+
+.palette-overlay { position: fixed; inset: 0; z-index: 70; background-color: var(--v2-overlay-simple-overlay-scrim); display: flex; justify-content: center; align-items: flex-start; padding: 10vh 16px 16px; }
+.palette {
+  inline-size: min(640px, 100%); max-height: min(512px, 80vh);
+  background-color: var(--v2-background-bg-layer-01);
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: var(--v2-elevation-overlay);
+}
+.palette input { border: 0; border-bottom: 1px solid var(--v2-border-border-muted); border-radius: 0; min-height: 48px; font-size: 15px; box-shadow: none; background: transparent; }
+.palette input:focus-visible { outline-offset: -2px; }
+.palette .group { padding: 12px 8px 4px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--v2-text-text-muted); }
+.palette .item { inline-size: 100%; text-align: start; background: transparent; border: 0; color: var(--v2-text-text-base); padding: 9px 10px; border-radius: var(--radius-lg); cursor: pointer; font-size: var(--fs-base); display: flex; justify-content: space-between; gap: 12px; align-items: center; min-height: var(--touch); }
+.palette .item:hover { background-color: var(--v2-overlay-simple-overlay-hover); }
+.palette .item[aria-selected="true"] { background-color: var(--v2-overlay-simple-overlay-pressed); }
+.palette-list { overflow-y: auto; }
+.palette .foot { padding: 8px 12px; border-top: 1px solid var(--v2-border-border-muted); font-size: var(--fs-xs); color: var(--v2-text-text-muted); display: flex; gap: 12px; }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-pop {
+  position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 40; min-width: 200px;
+  background-color: var(--v2-background-bg-layer-01);
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  box-shadow: var(--v2-elevation-floating);
+}
+.menu-pop button { text-align: start; background: transparent; border: 0; color: var(--v2-text-text-base); padding: 9px 10px; border-radius: var(--radius-lg); cursor: pointer; min-height: var(--touch); }
+.menu-pop button:hover { background-color: var(--v2-overlay-simple-overlay-hover); }
+.menu-pop button.danger { color: var(--v2-state-fg-danger); }
+.rm-wrap { position: relative; flex: 1; min-inline-size: 0; }
+
+/* Report header: title block and its action cluster share a baseline row. */
+.rephead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.rephead h2 { margin: 0 0 4px; font-size: 17px; letter-spacing: -0.01em; }
+.report h3 { margin-block-start: 24px; }
+pre.export {
+  background-color: var(--v2-background-bg-layer-03);
+  color: var(--v2-text-text-base);
+  border: 1px solid var(--v2-border-border-muted);
+  padding: 12px; border-radius: var(--radius-lg); overflow: auto; font-size: var(--fs-xs);
+}
+
+/* Free-standing field label/control pair, used where a plain <label> wraps its
+ * own control (MyTax mirror) rather than going through FieldV2. */
+.fld-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .fld-grid { grid-template-columns: minmax(0, 1fr); } }
+.fld { display: block; min-inline-size: 0; }
+.fld .fl { display: block; font-size: var(--fs-small); color: var(--v2-text-text-muted); margin: 8px 0 4px; }
+
+/* Compact inline line editors (related-party rows, asset checkboxes). */
+.linerow { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
+.linerow input, .linerow select { margin: 0; }
+.linerow-main { flex: 1; min-inline-size: 0; }
+.checkcol { display: flex; flex-direction: column; gap: 0; }
+/* Twelve month-end balances: 6 across, degrading to 3 then 2. */
+.mgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 900px) { .mgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .mgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* "+ Add line" sits under the rows it extends, not flush against them. */
+.add-action { margin-block-start: 12px; }
+/* Checkbox that shares a .row2 cell with text inputs: align to the input, not
+ * the label above it. */
+.check-end { align-self: end; }
+.row2-gap { row-gap: 16px; }
+.flag-inline { display: inline-flex; align-items: center; gap: 6px; }
+
+kbd.chip {
+  font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--v2-text-text-muted);
+  border: 1px solid var(--v2-border-border-muted); border-radius: 4px;
+  padding: 1px 5px; background-color: var(--v2-background-bg-layer-02);
+}
+.palette .item .k { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--v2-text-text-muted); }
+.toast .tt { font-weight: 600; font-size: var(--fs-base); }
+.toast .td { font-size: var(--fs-small); color: var(--v2-text-text-muted); margin-block-start: 2px; }
+@media (max-width: 560px) { .app { padding: 12px 12px 64px; } }
+/* Print is a deliverable here: e-C keying doubles as the keying record and
+ * Report as the working paper, so rows must not split across pages. */
+@media print {
+  .no-print, .tabbar { display: none !important; }
+  body { background: #fff; color: #000; }
+  .app { max-width: none; padding: 0; }
+  .panel { border: 0; padding: 0; box-shadow: none; }
+  .tabs { position: static; }
+  .card, .assetbox { break-inside: avoid; }
+  tr, .kv, .vrow, .check { break-inside: avoid; }
+  .tscroll { overflow: visible; }
+  table.w { min-inline-size: 0; }
+  pre.export { background: #fff; color: #000; border: 1px solid #999; }
+}
+}

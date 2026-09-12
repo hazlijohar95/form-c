@@ -1,0 +1,59 @@
+@layer components {
+  [data-component="card"] {
+    --card-pad-y: 10px;
+    --card-pad-r: 12px;
+    --card-pad-l: 10px;
+    --card-gap: 8px;
+    --card-icon: 16px;
+    --card-indent: 0px;
+    --card-line-pad: 8px;
+    --card-accent: var(--text-weaker);
+
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    padding: var(--card-pad-y) var(--card-pad-r) var(--card-pad-y) var(--card-pad-l);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: var(--leading);
+    color: var(--text);
+  }
+
+  [data-component="card"]:has([data-slot="card-title"]) {
+    gap: 8px;
+  }
+
+  [data-component="card"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: var(--card-line-pad);
+    bottom: var(--card-line-pad);
+    width: 2px;
+    border-radius: 2px;
+    background-color: var(--card-accent);
+  }
+
+  [data-component="card"] :where([data-slot="card-title"]) {
+    color: var(--text);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--card-gap);
+  }
+
+  [data-component="card"] :where([data-slot="card-description"]) {
+    color: var(--text-weak);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  [data-component="card"] :where([data-slot="card-actions"]) {
+    padding-left: var(--card-indent);
+  }
+}

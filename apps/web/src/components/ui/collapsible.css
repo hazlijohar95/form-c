@@ -1,0 +1,89 @@
+[data-component="collapsible"] {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-md, var(--radius));
+  overflow: visible;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"] {
+  width: 100%;
+  display: flex;
+  height: 32px;
+  padding: 0;
+  align-items: center;
+  align-self: stretch;
+  cursor: default;
+  user-select: none;
+  border: none;
+  background: none;
+  color: var(--text-base, var(--text));
+  font-family: var(--font-sans);
+  font-size: var(--font-size-small, var(--fs-small));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"]:focus-visible {
+  outline: none;
+  background-color: var(--surface-raised-base-hover, var(--bg-strong));
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"][data-disabled] {
+  cursor: not-allowed;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-arrow"] {
+  opacity: 0;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"]:hover [data-slot="collapsible-arrow"] {
+  opacity: 1;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"][aria-expanded="true"] [data-slot="collapsible-arrow"] {
+  opacity: 1;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-arrow-icon"] {
+  display: inline-flex;
+  color: var(--icon-weaker, var(--text-weaker));
+  transform: translateZ(0) rotate(-90deg);
+}
+
+[data-component="collapsible"] [data-slot="collapsible-trigger"][aria-expanded="true"] [data-slot="collapsible-arrow-icon"] {
+  transform: translateZ(0) rotate(0deg);
+}
+
+[data-component="collapsible"] [data-slot="collapsible-content"] {
+  overflow: hidden;
+}
+
+[data-component="collapsible"] [data-slot="collapsible-content"][data-expanded] {
+  overflow: visible;
+}
+
+[data-component="collapsible"][data-variant="ghost"] {
+  background-color: transparent;
+  border: none;
+}
+
+[data-component="collapsible"][data-variant="ghost"] > [data-slot="collapsible-trigger"] {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+}
+
+[data-component="collapsible"][data-variant="ghost"] > [data-slot="collapsible-trigger"]:focus-visible {
+  outline: none;
+  background-color: var(--surface-raised-base-hover, var(--bg-strong));
+}

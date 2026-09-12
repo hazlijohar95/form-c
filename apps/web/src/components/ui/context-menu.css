@@ -1,0 +1,99 @@
+[data-component="context-menu-content"],
+[data-component="context-menu-sub-content"] {
+  min-width: 8rem;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-md, var(--radius));
+  box-shadow: var(--shadow-xs-border, 0 0 0 1px var(--border));
+  background-clip: padding-box;
+  background-color: var(--surface-raised-stronger-non-alpha, var(--surface-raised));
+  padding: 4px;
+  z-index: 100;
+}
+
+[data-component="context-menu-content"]:focus,
+[data-component="context-menu-sub-content"]:focus,
+[data-component="context-menu-content"]:focus-within,
+[data-component="context-menu-sub-content"]:focus-within {
+  outline: none;
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item"],
+[data-component="context-menu-content"] [data-slot="context-menu-checkbox-item"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-checkbox-item"],
+[data-component="context-menu-content"] [data-slot="context-menu-radio-item"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-radio-item"],
+[data-component="context-menu-content"] [data-slot="context-menu-sub-trigger"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-sub-trigger"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  text-align: start;
+  border-radius: var(--radius-sm, var(--radius));
+  cursor: default;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+  color: var(--text-strong, var(--text));
+  user-select: none;
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item"]:hover,
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item"]:hover,
+[data-component="context-menu-content"] [data-slot="context-menu-sub-trigger"]:hover,
+[data-component="context-menu-sub-content"] [data-slot="context-menu-sub-trigger"]:hover {
+  background-color: var(--surface-raised-base-hover, var(--bg-strong));
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item"][data-disabled],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item"][data-disabled] {
+  color: var(--text-weak);
+  pointer-events: none;
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item-indicator"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item-indicator"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item-label"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item-label"] {
+  flex: 1;
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-item-description"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-item-description"] {
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  color: var(--text-weak);
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-separator"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-separator"] {
+  height: 1px;
+  margin: 4px -4px;
+  background: var(--border-weak-base, var(--border));
+}
+
+[data-component="context-menu-content"] [data-slot="context-menu-group-label"],
+[data-component="context-menu-sub-content"] [data-slot="context-menu-group-label"] {
+  padding: 4px 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+  color: var(--text-weak);
+}

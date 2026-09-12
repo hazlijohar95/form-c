@@ -1,6 +1,6 @@
 import { formatRM } from "@formc/engine";
 import { rmStrToSen } from "../lib/rm.js";
-import { updateById, removeById, uid } from "../lib/lists.js";
+import { plural, updateById, removeById, uid } from "../lib/lists.js";
 import { computeEngagement, diagnoseRmInputs } from "../lib/computation.js";
 import { LineTable } from "./LineTable.js";
 import { RmInput } from "./RmInput.js";
@@ -104,8 +104,8 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
   return (
     <div>
       {rmIssues.length > 0 && (
-        <div className="card" role="alert" aria-label="Invalid amounts coerced to zero">
-          <h3>Input errors — {rmIssues.length} amount(s) treated as 0</h3>
+        <div className="card" role="alert">
+          <h3>Input errors — {rmIssues.length} {plural(rmIssues.length, "amount")} treated as 0</h3>
           <p className="hint">
             These fields failed RM validation and are computed as zero. Fix the format
             (RM 1,234.56) — the computation below does not include what you typed.
@@ -117,10 +117,14 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
           ))}
         </div>
       )}
-      <div className="card">
-        <h3>Verification — {checks.length - failed}/{checks.length} pass</h3>
+      {/* The card accent states the outcome before any row is read. */}
+      <div className="card" data-variant={failed > 0 ? "error" : "success"}>
+        <h3>
+          Verification — {checks.length - failed}/{checks.length} pass
+          {failed > 0 && ` · ${failed} to clear`}
+        </h3>
         {checks.map((c) => (
-          <div key={c.name} className={c.pass ? "vrow pass" : "vrow fail"}>
+          <div key={c.name} className={c.pass ? "vrow" : "vrow fail"}>
             <span>{c.pass ? "✓" : "✗"} {c.name}</span>
             <span className="detail">{c.detail}</span>
           </div>
@@ -139,9 +143,9 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
         emptyTitle="No blocking items"
         emptyHint="Everything obtainable is in. Add anything still [TO OBTAIN]."
           columns={[
-            { header: "Item", cell: (o, set) => (<input value={o.title} onChange={(e) => set({ title: e.target.value })} aria-label="Item" placeholder="Item" style={{ width: "100%" }} />) },
-            { header: "Why it blocks", cell: (o, set) => (<input value={o.whyBlocks} onChange={(e) => set({ whyBlocks: e.target.value })} aria-label="Why" placeholder="Why" style={{ width: "100%" }} />) },
-            { header: "Effect", cell: (o, set) => (<input value={o.effect} onChange={(e) => set({ effect: e.target.value })} aria-label="Effect" placeholder="Effect" style={{ width: "100%" }} />) },
+            { header: "Item", cell: (o, set) => (<input value={o.title} onChange={(e) => set({ title: e.target.value })} aria-label="Item" />) },
+            { header: "Why it blocks", cell: (o, set) => (<input value={o.whyBlocks} onChange={(e) => set({ whyBlocks: e.target.value })} aria-label="Why" />) },
+            { header: "Effect", cell: (o, set) => (<input value={o.effect} onChange={(e) => set({ effect: e.target.value })} aria-label="Effect" />) },
             { header: "Resolved", cell: (o, set) => (<label className="check"><input type="checkbox" checked={o.resolved} onChange={(e) => set({ resolved: e.target.checked })} /><span>Yes</span></label>) },
           ]}
         />
@@ -159,9 +163,9 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
         emptyTitle="No judgements recorded"
         emptyHint="Record each position + alternative, then get partner sign-off."
           columns={[
-            { header: "Judgement", cell: (j, set) => (<input value={j.title} onChange={(e) => set({ title: e.target.value })} aria-label="Judgement" placeholder="Judgement" style={{ width: "100%" }} />) },
-            { header: "Position", cell: (j, set) => (<input value={j.position} onChange={(e) => set({ position: e.target.value })} aria-label="Position" placeholder="Position" style={{ width: "100%" }} />) },
-            { header: "Alternative", cell: (j, set) => (<input value={j.alternative} onChange={(e) => set({ alternative: e.target.value })} aria-label="Alternative" placeholder="Alternative" style={{ width: "100%" }} />) },
+            { header: "Judgement", cell: (j, set) => (<input value={j.title} onChange={(e) => set({ title: e.target.value })} aria-label="Judgement" />) },
+            { header: "Position", cell: (j, set) => (<input value={j.position} onChange={(e) => set({ position: e.target.value })} aria-label="Position" />) },
+            { header: "Alternative", cell: (j, set) => (<input value={j.alternative} onChange={(e) => set({ alternative: e.target.value })} aria-label="Alternative" />) },
             { header: "Signed", cell: (j, set) => (<label className="check"><input type="checkbox" checked={j.signedOff} onChange={(e) => set({ signedOff: e.target.checked })} /><span>Yes</span></label>) },
           ]}
         />

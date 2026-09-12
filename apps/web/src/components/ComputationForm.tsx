@@ -50,7 +50,7 @@ function AddBackEditor(props: { lines: AddBackLine[]; patch: Patch }): JSX.Eleme
         {
           header: "Description",
           cell: (l, set) => (
-            <input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="Description" placeholder="Description" style={{ width: "100%" }} />
+            <input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="Description" />
           ),
         },
         {
@@ -77,7 +77,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
   return (
     <div>
       <div className="card">
-        <h3>Company &amp; basis period</h3>
+        <h3 data-step="2.1">Company &amp; basis period</h3>
         <div className="row2">
           <Text label="Company name" value={eng.companyName} on={(v) => patch({ companyName: v })} />
           <Text label="Reg no" value={eng.regNo} on={(v) => patch({ regNo: v })} />
@@ -96,7 +96,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>SME status — all 5 must hold</h3>
+        <h3 data-step="2.2">SME status — all 5 must hold</h3>
         <div className="row2">
           <RmInput label="Paid-up capital (RM)" value={eng.paidUpRM} on={(v) => patch({ paidUpRM: v })} placeholder="0.00" />
           <RmInput label="Gross business income (RM)" value={eng.grossIncRM} on={(v) => patch({ grossIncRM: v })} placeholder="0.00" />
@@ -109,7 +109,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
               checked={eng.controlsLarge}
               onChange={(e) => patch({ controlsLarge: e.target.checked })}
             />
-            <span>Controls company &gt; RM2.5m</span>
+            <span>Controls another company with paid-up capital over RM2.5m</span>
           </label>
           <label className="check">
             <input
@@ -117,13 +117,13 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
               checked={eng.controlledByLarge}
               onChange={(e) => patch({ controlledByLarge: e.target.checked })}
             />
-            <span>Controlled by company &gt; RM2.5m</span>
+            <span>Controlled by a company with paid-up capital over RM2.5m</span>
           </label>
         </div>
       </div>
 
       <div className="card">
-        <h3>Adjusted income working</h3>
+        <h3 data-step="2.3">Adjusted income working</h3>
         <RmInput label="Net profit per accounts (RM)" value={eng.netProfitRM} on={(v) => patch({ netProfitRM: v })} placeholder="0.00" />
         <h4>Add-backs (each line sectioned)</h4>
         <AddBackEditor lines={eng.addBacks} patch={patch} />
@@ -134,17 +134,17 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>Capital allowance schedule — one row per asset</h3>
+        <h3 data-step="2.4">Capital allowance schedule — one row per asset</h3>
         <AssetTable assets={eng.assets} patch={patch} />
       </div>
 
       <div className="card">
-        <h3>Other sources + cross-border (s.4(c)-(f), WHT, s.140C)</h3>
+        <h3 data-step="2.5">Other sources + cross-border (s.4(c)-(f), WHT, s.140C)</h3>
         <h4>Non-business sources (each floored at NIL)</h4>
         <SourceEditor eng={eng} patch={patch} />
         <h4>Non-resident payments (WHT — unremitted auto-adds back s.39(2))</h4>
         <WhtEditor eng={eng} patch={patch} />
-        <div className="row2" style={{ marginTop: 8 }}>
+        <div className="row2 row2-gap">
           <RmInput label="Controlled cross-border interest (RM)" value={eng.relatedInterestRM} on={(v) => patch({ relatedInterestRM: v })} placeholder="0.00" />
           <RmInput label="Tax-EBITDA (RM)" value={eng.taxEbitdaRM} on={(v) => patch({ taxEbitdaRM: v })} placeholder="0.00" />
         </div>
@@ -152,7 +152,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>Incentives, group relief, IHC</h3>
+        <h3 data-step="2.6">Incentives, group relief, IHC</h3>
         <div className="row2">
           <RmInput label="RA qualifying expenditure (RM)" value={eng.raQeRM} on={(v) => patch({ raQeRM: v })} placeholder="0.00" />
           <RmInput label="RA b/f (RM)" value={eng.raBfRM} on={(v) => patch({ raBfRM: v })} placeholder="0.00" />
@@ -173,7 +173,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
         <div className="row3">
           <RmInput label="Loss surrendered (RM)" value={eng.groupSurrenderedRM} on={(v) => patch({ groupSurrenderedRM: v })} placeholder="0.00" />
           <RmInput label="Surrenderer adjusted loss (RM)" value={eng.groupSurrendererLossRM} on={(v) => patch({ groupSurrendererLossRM: v })} placeholder="0.00" />
-          <label className="check" style={{ alignSelf: "end" }}>
+          <label className="check check-end">
             <input type="checkbox" checked={eng.groupConditionsMet} onChange={(e) => patch({ groupConditionsMet: e.target.checked })} />
             <span>All s.44A conditions met</span>
           </label>
@@ -185,12 +185,12 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>Losses, donations, credits, CP204</h3>
+        <h3 data-step="2.7">Losses, donations, credits, CP204</h3>
         <div className="row2">
           <RmInput label="Unabsorbed CA b/f (RM)" value={eng.unabsorbedCaBfRM} on={(v) => patch({ unabsorbedCaBfRM: v })} placeholder="0.00" />
           <RmInput label="Current-year loss offset s.44(2) (RM)" value={eng.currentLossOffsetRM} on={(v) => patch({ currentLossOffsetRM: v })} placeholder="0.00" />
         </div>
-        <div className="row2" style={{ marginTop: 8 }}>
+        <div className="row2 row2-gap">
           <RmInput label="WHT credit (RM)" value={eng.whtCreditRM} on={(v) => patch({ whtCreditRM: v })} placeholder="0.00" />
         </div>
         <div className="row2">
@@ -206,7 +206,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
         <RmInput label="CP204 estimate (RM)" value={eng.cp204EstimateRM} on={(v) => patch({ cp204EstimateRM: v })} placeholder="0.00" />
         <div className="row2">
           <RmInput label="Prior-YA credits held by LHDN (RM)" value={eng.priorCreditRM} on={(v) => patch({ priorCreditRM: v })} placeholder="0.00" />
-          <label className="check" style={{ alignSelf: "end" }}>
+          <label className="check check-end">
             <input type="checkbox" checked={eng.priorCreditVerified} onChange={(e) => patch({ priorCreditVerified: e.target.checked })} />
             <span>Verified on MyTax ledger (unverified credits are excluded from net cash)</span>
           </label>
@@ -214,7 +214,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>Schedule 3 override (external register basis)</h3>
+        <h3 data-step="2.8">Schedule 3 override (external register basis)</h3>
         <label className="check">
           <input type="checkbox" checked={eng.schedule3.enabled} onChange={(e) => patch({ schedule3: { ...eng.schedule3, enabled: e.target.checked } })} />
           <span>Use external schedule instead of the per-asset loop above</span>
@@ -240,7 +240,7 @@ export function ComputationForm(props: { eng: Engagement; patch: Patch }): JSX.E
       </div>
 
       <div className="card">
-        <h3>Non-qualifying register items + register tie</h3>
+        <h3 data-step="2.9">Non-qualifying register items + register tie</h3>
         <NonQualifyingEditor eng={eng} patch={patch} />
         <RmInput label="FA register grand total (RM)" value={eng.registerTotalRM} on={(v) => patch({ registerTotalRM: v })} placeholder="0.00" />
       </div>
@@ -261,9 +261,9 @@ function NonQualifyingEditor(props: { eng: Engagement; patch: Patch }): JSX.Elem
       emptyTitle="No non-qualifying items"
       emptyHint="List register items that are not plant — ties to register total."
       columns={[
-        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Renovation fit-out" placeholder="e.g. Renovation fit-out" style={{ width: "100%" }} />) },
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Renovation fit-out" placeholder="e.g. Renovation fit-out" />) },
         { header: "RM", cell: (l, set) => (<RmInput label="Amount (RM)" compact value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
-        { header: "Why not plant", cell: (l, set) => (<input value={l.reason} onChange={(e) => set({ reason: e.target.value })} aria-label="Why not plant" placeholder="Why not plant" style={{ width: "100%" }} />) },
+        { header: "Why not plant", cell: (l, set) => (<input value={l.reason} onChange={(e) => set({ reason: e.target.value })} aria-label="Why not plant" />) },
       ]}
     />
   );
@@ -281,9 +281,9 @@ function CreditEditor(props: { lines: CreditLine[]; patch: Patch }): JSX.Element
       emptyTitle="No credits yet"
       emptyHint="Add non-taxable receipts — e.g. single-tier dividends with basis."
       columns={[
-        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Single-tier dividends" placeholder="e.g. Single-tier dividends" style={{ width: "100%" }} />) },
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Single-tier dividends" placeholder="e.g. Single-tier dividends" />) },
         { header: "RM", cell: (l, set) => (<RmInput label="Amount (RM)" compact value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
-        { header: "Basis", cell: (l, set) => (<input value={l.basis} onChange={(e) => set({ basis: e.target.value })} aria-label="Basis" placeholder="Basis" style={{ width: "100%" }} />) },
+        { header: "Basis", cell: (l, set) => (<input value={l.basis} onChange={(e) => set({ basis: e.target.value })} aria-label="Basis" />) },
       ]}
     />
   );
@@ -302,10 +302,10 @@ function DoubleEditor(props: { lines: DoubleDeductionLine[]; patch: Patch }): JS
       emptyTitle="No double deductions"
       emptyHint="Add s.34 claims with D1 code and P.U.(A) authority."
         columns={[
-          { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Statutory audit expenditure" placeholder="e.g. Statutory audit expenditure" style={{ width: "100%" }} />) },
+          { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Statutory audit expenditure" placeholder="e.g. Statutory audit expenditure" />) },
           { header: "RM", cell: (l, set) => (<RmInput label="Amount (RM)" compact value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
-          { header: "D1 code", cell: (l, set) => (<input value={l.code} onChange={(e) => set({ code: e.target.value })} aria-label="132/157" placeholder="132/157" style={{ width: "100%" }} />) },
-          { header: "Authority", cell: (l, set) => (<input value={l.authority} onChange={(e) => set({ authority: e.target.value })} aria-label="P.U.(A)" placeholder="P.U.(A)" style={{ width: "100%" }} />) },
+          { header: "D1 code", cell: (l, set) => (<input value={l.code} onChange={(e) => set({ code: e.target.value })} aria-label="132/157" placeholder="132/157" />) },
+          { header: "Authority", cell: (l, set) => (<input value={l.authority} onChange={(e) => set({ authority: e.target.value })} aria-label="P.U.(A)" placeholder="P.U.(A)" />) },
           { header: "Cap RM", cell: (l, set) => (<RmInput label="Cap (RM), blank for none" compact value={l.capRM} on={(v) => set({ capRM: v })} placeholder="blank=none" />) },
         ]}
       />
@@ -326,7 +326,7 @@ function SourceEditor(props: { eng: Engagement; patch: Patch }): JSX.Element {
       emptyTitle="No other sources"
       emptyHint="Add s.4(c)–(f) income — each floored at NIL."
       columns={[
-        { header: "Source", cell: (l, set) => (<input value={l.label} onChange={(e) => set({ label: e.target.value })} aria-label="e.g. Interest (hibah) s.4(c)" placeholder="e.g. Interest (hibah) s.4(c)" style={{ width: "100%" }} />) },
+        { header: "Source", cell: (l, set) => (<input value={l.label} onChange={(e) => set({ label: e.target.value })} aria-label="e.g. Interest (hibah) s.4(c)" placeholder="e.g. Interest (hibah) s.4(c)" />) },
         { header: "RM", cell: (l, set) => (<RmInput label="Amount (RM)" compact value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
       ]}
     />
@@ -348,7 +348,7 @@ function WhtEditor(props: { eng: Engagement; patch: Patch }): JSX.Element {
       emptyTitle="No non-resident payments"
       emptyHint="Add s.109/109B payments — unremitted WHT auto-adds back s.39(2)."
       columns={[
-        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Management fee to SG" placeholder="e.g. Management fee to SG" style={{ width: "100%" }} />) },
+        { header: "Description", cell: (l, set) => (<input value={l.description} onChange={(e) => set({ description: e.target.value })} aria-label="e.g. Management fee to SG" placeholder="e.g. Management fee to SG" />) },
         { header: "RM", cell: (l, set) => (<RmInput label="Amount (RM)" compact value={l.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
         { header: "Section", cell: (l, set) => (
           <select aria-label="WHT section" value={l.section} onChange={(e) => { const v = e.target.value; if (isWhtSection(v)) set({ section: v }); }}>

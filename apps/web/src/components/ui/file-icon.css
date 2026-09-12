@@ -1,0 +1,17 @@
+@layer components {
+  [data-component="file-icon"] {
+    display: block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--text-weak);
+  }
+
+  [data-component="file-icon"][data-kind="folder"] {
+    color: var(--warning);
+  }
+
+  [data-component="file-icon"][data-kind="code"] {
+    color: var(--interactive);
+  }
+}

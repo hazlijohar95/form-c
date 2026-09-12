@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Form C Studio — Sdn Bhd tax computation (ITA 1967), YA2025. Adjusted income, Schedule 3, SME bands, MyTax export." />
-    <meta name="theme-color" content="#101010" />
+    <meta name="theme-color" content="#161616" />
+    <!--
+      Cascade layer order, declared before any stylesheet loads.
+      This must live here rather than in theme.css: bundlers inject
+      component-level CSS ahead of the entry stylesheet, so the first `@layer`
+      the document sees would otherwise be `components`, silently inverting the
+      intended order and letting `base` rules override component rules.
+    -->
+    <style>@layer theme, base, components, utilities;</style>
     <script>
       // FOUC-free theme: stored choice wins, default dark, system follows OS.
       try {
@@ -14,7 +22,7 @@
         if (r === "dark") document.documentElement.classList.add("dark");
         document.documentElement.style.colorScheme = r;
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", r === "dark" ? "#101010" : "#f6f6f6");
+        if (meta) meta.setAttribute("content", r === "dark" ? "#161616" : "#ffffff");
       } catch (e) { document.documentElement.classList.add("dark"); }
     </script>
     <title>Form C Studio — Sdn Bhd Tax Computation YA2025</title>

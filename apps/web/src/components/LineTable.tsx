@@ -107,7 +107,7 @@ export function LineTable<T extends LineRow>(props: {
           </tbody>
         </table>
       </div>
-      <button type="button" className="btn" onClick={onAdd} style={{ marginTop: 8 }}>
+      <button type="button" className="btn add-action" onClick={onAdd}>
         {addLabel}
       </button>
     </div>

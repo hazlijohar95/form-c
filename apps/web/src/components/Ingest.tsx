@@ -40,7 +40,7 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
 
   return (
     <div className="card">
-      <h3>Ingest — trial balance paste (propose only)</h3>
+      <h3>Ingest — trial balance paste</h3>
       <p className="hint">
         Paste TB lines as <span className="mono">Account name … amount</span>, one per line.
         Nothing posts until you assign each line. Parentheses = credit.
@@ -54,15 +54,15 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
         placeholder={"Depreciation 50,000.00\nEntertainment 20,000.00\nSales (1,200,000.00)"}
       />
       {proposals.length > 0 && (
-        <div className="tscroll">
-        <table className="w" style={{ marginTop: 10 }}>
+        <div className="tscroll proposals">
+        <table className="w">
           <thead>
             <tr>
               <th>TB line</th>
-              <th style={{ textAlign: "right" }}>Amount</th>
+              <th className="num-h">Amount</th>
               <th>Hint</th>
               <th>Assign</th>
-              <th></th>
+              <th><span className="sr-only">Action</span></th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +77,7 @@ export function Ingest(props: { eng: Engagement; patch: Patch }): JSX.Element {
                     {state === "posted" ? (
                       <span className="ok">Posted ✓</span>
                     ) : (
-                      <select aria-label="Assign TB line" value={state} onChange={(e) => setAssign((prev) => ({ ...prev, [p.id]: e.target.value }))}>
+                      <select aria-label={`Assign ${p.label} to section`} value={state} onChange={(e) => setAssign((prev) => ({ ...prev, [p.id]: e.target.value }))}>
                         <option value="ignore">Ignore / dealt with</option>
                         <option value="credit">Non-taxable credit</option>
                         {SECTIONS.map((s) => (

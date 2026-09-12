@@ -30,8 +30,6 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
             value={ctx.getValue()}
             onChange={(e) => set(ctx.row.original.id, { description: e.target.value })}
             aria-label="Asset description"
-            placeholder="Asset description"
-            style={{ width: "100%" }}
           />
         ),
       }),
@@ -97,7 +95,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} style={{ textAlign: "left" }}>
+                <th key={h.id} scope="col">
                   {flexRender(h.column.columnDef.header, h.getContext())}
                 </th>
               ))}
@@ -211,7 +209,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch }): JSX.El
         </div>
       ))}
       <button
-        className="btn"
+        className="btn add-action"
         onClick={() =>
           patch({
             assets: [

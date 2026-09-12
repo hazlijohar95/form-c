@@ -1,0 +1,24 @@
+@layer components {
+  [data-component="app-icon"] {
+    display: block;
+    box-sizing: border-box;
+    object-fit: contain;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  span[data-component="app-icon"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-strong);
+    color: var(--text-weak);
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+}

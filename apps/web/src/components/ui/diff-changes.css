@@ -1,0 +1,42 @@
+[data-component="diff-changes"] {
+  display: flex;
+  direction: ltr;
+  unicode-bidi: isolate;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+
+  [data-slot="diff-changes-additions"] {
+    font-family: var(--font-family-mono, var(--font-mono));
+    font-size: var(--fs-base);
+    font-style: normal;
+    font-weight: var(--font-weight-regular, 400);
+    line-height: var(--line-height-large, var(--leading));
+    letter-spacing: var(--letter-spacing-normal, normal);
+    text-align: right;
+    color: var(--text-diff-add-base, var(--success));
+  }
+
+  [data-slot="diff-changes-deletions"] {
+    font-family: var(--font-family-mono, var(--font-mono));
+    font-size: var(--fs-base);
+    font-style: normal;
+    font-weight: var(--font-weight-regular, 400);
+    line-height: var(--line-height-large, var(--leading));
+    letter-spacing: var(--letter-spacing-normal, normal);
+    text-align: right;
+    color: var(--text-diff-delete-base, var(--critical));
+  }
+}
+
+[data-component="diff-changes"][data-variant="bars"] {
+  width: 18px;
+  height: 14px;
+  flex-shrink: 0;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}

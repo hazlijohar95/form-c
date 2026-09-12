@@ -1,0 +1,81 @@
+[data-component="tabs"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+[data-component="tabs"][data-orientation="vertical"] {
+  flex-direction: row;
+}
+
+[data-component="tabs"] [data-slot="tabs-list"] {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--touch);
+}
+
+[data-component="tabs"][data-orientation="vertical"] [data-slot="tabs-list"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger-wrapper"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 6px 10px;
+  min-height: var(--touch);
+  border-radius: var(--radius-md, var(--radius));
+  color: var(--text-weak);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-small, var(--fs-small));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger"]:hover {
+  color: var(--text-strong, var(--text));
+  background: var(--surface-raised-base-hover, var(--bg-strong));
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger"]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger-wrapper"][data-selected="true"] [data-slot="tabs-trigger"] {
+  color: var(--text-strong, var(--text));
+  background: var(--surface-raised-base-active, var(--bg-base));
+}
+
+[data-component="tabs"] [data-slot="tabs-trigger-close-button"][data-hidden="true"] {
+  display: none;
+}
+
+[data-component="tabs"] [data-slot="tabs-content"] {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+[data-component="tabs"] [data-slot="tabs-section-title"] {
+  padding: 4px 8px;
+  color: var(--text-weak);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+}

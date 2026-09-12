@@ -1,0 +1,17 @@
+[data-component="inline-input"] {
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md, var(--radius));
+  padding: 0;
+  min-width: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    box-shadow: var(--inline-input-shadow, var(--shadow-focus));
+  }
+}

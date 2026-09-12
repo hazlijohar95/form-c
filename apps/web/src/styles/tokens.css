@@ -1,0 +1,466 @@
+/*
+ * Token contract — three tiers, one direction of dependency.
+ *
+ *   1. primitives   `v2-colors.css`     raw ramps, theme-independent
+ *   2. semantics    this file, §1/§2    --v2-*, the opencode v2 contract
+ *   3. compat       this file, §3       base + v1 names aliased onto §1/§2
+ *
+ * Semantics are ported from @opencode-ai/ui `src/v2/styles/theme.css`
+ * (`[data-color-scheme="light"]` / `[data-color-scheme="dark"]`). Tier 3 exists
+ * so the app shell, `filing.css` and the v1 component port keep working while
+ * being driven by the v2 palette — dark mode and elevation come for free.
+ *
+ * Rules: components consume tier 2 or 3, never tier 1. No literal hex outside
+ * tier 1 and the fixed avatar/diff ramps, which are theme-independent by design.
+ *
+ * Dark mode is `:root.dark` (set pre-paint in index.html) and also honours
+ * `[data-color-scheme="dark"]` for opencode/Storybook parity. Both selectors are
+ * (0,2,0) so they beat the (0,1,0) `:root` light defaults regardless of order.
+ */
+@layer theme {
+  /* ══════════════════════════════════════════════════════════════════
+   * §1  v2 semantics — light (default)
+   * ══════════════════════════════════════════════════════════════════ */
+  :root {
+    color-scheme: light;
+
+    /* ── Background ── */
+    --v2-background-bg-base: var(--v2-grey-50);
+    --v2-background-bg-deep: var(--v2-grey-100);
+    --v2-background-bg-layer-01: var(--v2-grey-100);
+    --v2-background-bg-layer-02: var(--v2-grey-200);
+    --v2-background-bg-layer-03: var(--v2-grey-300);
+    --v2-background-bg-layer-04: var(--v2-grey-400);
+    --v2-background-bg-inverse: var(--v2-grey-1100);
+    --v2-background-bg-contrast: var(--v2-grey-1000);
+    --v2-background-bg-button-neutral: var(--v2-grey-50);
+    --v2-background-bg-accent: var(--v2-blue-600);
+
+    /* ── Text ── */
+    --v2-text-text-base: var(--v2-grey-1100);
+    --v2-text-text-muted: var(--v2-grey-700);
+    --v2-text-text-faint: var(--v2-grey-600);
+    --v2-text-text-inverse: var(--v2-grey-50);
+    --v2-text-text-contrast: var(--v2-grey-50);
+    --v2-text-text-accent: var(--v2-blue-600);
+    --v2-text-text-accent-hover: var(--v2-blue-700);
+    --v2-text-text-code-accent: var(--v2-blue-900);
+
+    /* ── Icon ── */
+    --v2-icon-icon-base: var(--v2-grey-800);
+    --v2-icon-icon-muted: var(--v2-grey-600);
+    --v2-icon-icon-inverse: var(--v2-grey-50);
+    --v2-icon-icon-contrast: var(--v2-grey-100);
+    --v2-icon-icon-accent: var(--v2-blue-600);
+    --v2-icon-icon-accent-hover: var(--v2-blue-700);
+
+    /* ── Border ── */
+    --v2-border-border-muted: var(--v2-alpha-dark-8);
+    --v2-border-border-base: var(--v2-alpha-dark-10);
+    --v2-border-border-strong: var(--v2-alpha-dark-20);
+    --v2-border-border-inverse: var(--v2-grey-1000);
+    --v2-border-border-focus: var(--v2-blue-500);
+
+    /* ── Overlay ── */
+    --v2-overlay-simple-overlay-hover: var(--v2-alpha-dark-4);
+    --v2-overlay-simple-overlay-pressed: var(--v2-alpha-dark-8);
+    --v2-overlay-simple-overlay-contrast-hover: var(--v2-alpha-light-12);
+    --v2-overlay-simple-overlay-contrast-pressed: var(--v2-alpha-light-24);
+    --v2-overlay-simple-overlay-scrim: var(--v2-alpha-dark-40);
+    --v2-overlay-gradient-depth-overlay-depth-top: var(--v2-alpha-light-100);
+    --v2-overlay-gradient-depth-overlay-depth-bot: var(--v2-alpha-light-0);
+    --v2-overlay-simple-tab-active-scrim: #fafafa00;
+    --v2-overlay-simple-tab-hover-scrim: #eeeeee00;
+    --v2-overlay-simple-tab-scrim: #fafafa00;
+
+    /* ── State ── */
+    --v2-state-bg-success: var(--v2-green-100);
+    --v2-state-fg-success: var(--v2-green-800);
+    --v2-state-border-success: var(--v2-green-300);
+    --v2-state-bg-warning: var(--v2-yellow-100);
+    --v2-state-fg-warning: var(--v2-yellow-800);
+    --v2-state-border-warning: var(--v2-yellow-300);
+    --v2-state-bg-danger: var(--v2-red-100);
+    --v2-state-fg-danger: var(--v2-red-800);
+    --v2-state-border-danger: var(--v2-red-300);
+    --v2-state-bg-info: var(--v2-blue-100);
+    --v2-state-fg-info: var(--v2-blue-800);
+    --v2-state-border-info: var(--v2-blue-300);
+
+    /* ── Agent ── */
+    --v2-agent-plan-solid: var(--v2-pink-800);
+    --v2-agent-plan-border: rgba(200, 61, 139, 0.2);
+    --v2-agent-plan-background: rgba(253, 236, 243, 0.1);
+    --v2-agent-build-solid: var(--v2-blue-800);
+    --v2-agent-build-border: rgba(44, 71, 200, 0.1);
+    --v2-agent-build-background: rgba(236, 241, 254, 0.1);
+    --v2-agent-explore-solid: var(--v2-yellow-900);
+    --v2-agent-explore-border: rgba(203, 159, 52, 0.2);
+    --v2-agent-explore-background: rgba(254, 250, 236, 0.1);
+    --v2-agent-review-solid: var(--v2-green-800);
+    --v2-agent-writer-solid: var(--v2-purple-700);
+
+    /* ── Project avatar (fixed; theme-independent) ── */
+    --v2-avatar-fg: #ffffffff;
+    --v2-avatar-bg-orange: #ee7330ff;
+    --v2-avatar-border-orange: #d16427ff;
+    --v2-avatar-bg-yellow: #e7af36ff;
+    --v2-avatar-border-yellow: #cb9f34ff;
+    --v2-avatar-bg-cyan: #0096b8ff;
+    --v2-avatar-border-cyan: #007d9bff;
+    --v2-avatar-bg-green: #2eaf5aff;
+    --v2-avatar-border-green: #198b43ff;
+    --v2-avatar-bg-red: #d92e3cff;
+    --v2-avatar-border-red: #b82d35ff;
+    --v2-avatar-bg-pink: #e4429eff;
+    --v2-avatar-border-pink: #c83d8bff;
+    --v2-avatar-bg-blue: #3250dfff;
+    --v2-avatar-border-blue: #2c47c8ff;
+    --v2-avatar-bg-purple: #623be2ff;
+    --v2-avatar-border-purple: #5230c2ff;
+    --v2-avatar-bg-gray: #5c5c5cff;
+    --v2-avatar-border-gray: #3a3a3aff;
+
+    /* ── Elevation ── */
+    --v2-elevation-raised:
+      0px 2px 4px 0px var(--v2-alpha-dark-4), 0px 1px 2px -1px var(--v2-alpha-dark-8),
+      0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0);
+    --v2-elevation-floating:
+      0px 8px 16px 0px var(--v2-alpha-dark-4), 0px 4px 8px 0px var(--v2-alpha-dark-8),
+      0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0);
+    --v2-elevation-overlay:
+      0px 16px 32px 0px var(--v2-alpha-dark-4), 0px 8px 16px 0px var(--v2-alpha-dark-8),
+      0px 0px 0px 0.5px var(--v2-alpha-dark-12), 0px 0px 0px 0px var(--v2-alpha-dark-0);
+    --v2-elevation-button-neutral:
+      0px 1px 1.5px 0px var(--v2-alpha-dark-10), 0px 0px 0px 0.5px var(--v2-alpha-dark-14),
+      0px 0px 0px 0px var(--v2-alpha-dark-0);
+    --v2-elevation-button-contrast:
+      0px 1px 1.5px 0px var(--v2-alpha-dark-20), 0px 0px 0px 0.5px var(--v2-grey-800),
+      inset 0px 1px 2px 0px var(--v2-alpha-light-14), inset 0px -1px 2px 0px var(--v2-alpha-dark-6),
+      0px 0px 0px 0px var(--v2-alpha-dark-0);
+    --v2-elevation-elements: 0px 0.5px 0.5px 0px var(--v2-alpha-dark-40);
+    --v2-elevation-switch-off:
+      inset 0px 1px 1px 0px var(--v2-alpha-dark-8), inset 0px 0.5px 0.5px 0px var(--v2-alpha-dark-8),
+      inset 0px 0px 0px 0.5px var(--v2-alpha-dark-10);
+    --v2-elevation-switch-on:
+      inset 0px 2px 2px 0px var(--v2-alpha-dark-10), inset 0px 1px 1px 0px var(--v2-alpha-dark-10),
+      inset 0px 0px 0px 0.5px var(--v2-alpha-dark-20);
+
+    /* ── Illustration ── */
+    --v2-illustration-illustration-layer-01: var(--v2-grey-300);
+    --v2-illustration-illustration-layer-02: var(--v2-grey-400);
+    --v2-illustration-illustration-layer-03: var(--v2-grey-500);
+
+    /* ── Diff / syntax (from the oc-2 theme block) ── */
+    --text-diff-add-base: #167517;
+    --text-diff-delete-base: #fa3012;
+    --syntax-comment: #7a7a7a;
+    --syntax-keyword: #a753ae;
+    --syntax-string: #00ceb9;
+    --syntax-primitive: #034cff;
+    --syntax-property: #a753ae;
+    --syntax-type: #8a6f00;
+    --syntax-critical: #ff8c00;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+   * §2  v2 semantics — dark
+   * ══════════════════════════════════════════════════════════════════ */
+  :root.dark,
+  :root[data-color-scheme="dark"] {
+    color-scheme: dark;
+
+    /* ── Background ── */
+    --v2-background-bg-base: var(--v2-grey-1100);
+    --v2-background-bg-deep: var(--v2-grey-1200);
+    --v2-background-bg-layer-01: var(--v2-grey-1000);
+    --v2-background-bg-layer-02: var(--v2-grey-900);
+    --v2-background-bg-layer-03: var(--v2-grey-800);
+    --v2-background-bg-layer-04: var(--v2-grey-700);
+    --v2-background-bg-inverse: var(--v2-grey-50);
+    --v2-background-bg-contrast: var(--v2-grey-700);
+    --v2-background-bg-button-neutral: var(--v2-alpha-light-6);
+    --v2-background-bg-accent: var(--v2-blue-600);
+
+    /* ── Text ── */
+    --v2-text-text-base: var(--v2-grey-100);
+    --v2-text-text-muted: var(--v2-grey-500);
+    --v2-text-text-faint: var(--v2-grey-600);
+    --v2-text-text-inverse: var(--v2-grey-1100);
+    --v2-text-text-contrast: var(--v2-grey-50);
+    --v2-text-text-accent: var(--v2-blue-400);
+    --v2-text-text-accent-hover: var(--v2-blue-300);
+    --v2-text-text-code-accent: var(--v2-blue-400);
+
+    /* ── Icon ── */
+    --v2-icon-icon-base: var(--v2-grey-400);
+    --v2-icon-icon-muted: var(--v2-grey-600);
+    --v2-icon-icon-inverse: var(--v2-grey-1100);
+    --v2-icon-icon-contrast: var(--v2-grey-100);
+    --v2-icon-icon-accent: var(--v2-blue-400);
+    --v2-icon-icon-accent-hover: var(--v2-blue-300);
+
+    /* ── Border ── */
+    --v2-border-border-muted: var(--v2-alpha-light-8);
+    --v2-border-border-base: var(--v2-alpha-light-10);
+    --v2-border-border-strong: var(--v2-alpha-light-20);
+    --v2-border-border-inverse: var(--v2-grey-100);
+    --v2-border-border-focus: var(--v2-blue-500);
+
+    /* ── Overlay ── */
+    --v2-overlay-simple-overlay-hover: var(--v2-alpha-light-6);
+    --v2-overlay-simple-overlay-pressed: var(--v2-alpha-light-10);
+    --v2-overlay-simple-overlay-contrast-hover: var(--v2-alpha-dark-24);
+    --v2-overlay-simple-overlay-contrast-pressed: var(--v2-alpha-dark-40);
+    --v2-overlay-simple-overlay-scrim: var(--v2-alpha-dark-60);
+    --v2-overlay-gradient-depth-overlay-depth-top: var(--v2-alpha-light-100);
+    --v2-overlay-gradient-depth-overlay-depth-bot: var(--v2-alpha-light-0);
+    --v2-overlay-simple-tab-active-scrim: #24242400;
+    --v2-overlay-simple-tab-hover-scrim: #3a3a3a00;
+    --v2-overlay-simple-tab-scrim: #08080800;
+
+    /* ── State ── */
+    --v2-state-bg-success: var(--v2-green-1200);
+    --v2-state-fg-success: var(--v2-green-500);
+    --v2-state-border-success: var(--v2-green-900);
+    --v2-state-bg-warning: var(--v2-yellow-1200);
+    --v2-state-fg-warning: var(--v2-yellow-500);
+    --v2-state-border-warning: var(--v2-yellow-900);
+    --v2-state-bg-danger: var(--v2-red-1200);
+    --v2-state-fg-danger: var(--v2-red-500);
+    --v2-state-border-danger: var(--v2-red-900);
+    --v2-state-bg-info: var(--v2-blue-1200);
+    --v2-state-fg-info: var(--v2-blue-500);
+    --v2-state-border-info: var(--v2-blue-900);
+
+    /* ── Agent ── */
+    --v2-agent-plan-solid: var(--v2-pink-400);
+    --v2-agent-plan-border: rgba(247, 153, 198, 0.2);
+    --v2-agent-plan-background: rgba(170, 53, 118, 0.05);
+    --v2-agent-build-solid: var(--v2-blue-300);
+    --v2-agent-build-border: rgba(162, 188, 255, 0.2);
+    --v2-agent-build-background: rgba(38, 63, 169, 0.05);
+    --v2-agent-explore-solid: var(--v2-yellow-300);
+    --v2-agent-explore-border: rgba(243, 218, 155, 0.2);
+    --v2-agent-explore-background: rgba(172, 136, 51, 0.05);
+    --v2-agent-review-solid: var(--v2-green-300);
+    --v2-agent-writer-solid: var(--v2-purple-400);
+
+    /* ── Project avatar ── */
+    --v2-avatar-fg: #ffffffff;
+    --v2-avatar-bg-orange: #723d22ff;
+    --v2-avatar-border-orange: #ff8648ff;
+    --v2-avatar-bg-yellow: #68552bff;
+    --v2-avatar-border-yellow: #e7af36ff;
+    --v2-avatar-bg-cyan: #005a6eff;
+    --v2-avatar-border-cyan: #0096b8ff;
+    --v2-avatar-bg-green: #196130ff;
+    --v2-avatar-border-green: #49c970ff;
+    --v2-avatar-bg-red: #7a1f23ff;
+    --v2-avatar-border-red: #d92e3cff;
+    --v2-avatar-bg-pink: #8c2d61ff;
+    --v2-avatar-border-pink: #e4429eff;
+    --v2-avatar-bg-blue: #263fa9ff;
+    --v2-avatar-border-blue: #7698fdff;
+    --v2-avatar-bg-purple: #361f83ff;
+    --v2-avatar-border-purple: #7152f4ff;
+    --v2-avatar-bg-gray: #5c5c5cff;
+    --v2-avatar-border-gray: #aeaeaeff;
+
+    /* ── Elevation ── */
+    --v2-elevation-raised:
+      0px 2px 4px 0px var(--v2-alpha-dark-30), 0px 1px 2px 0px var(--v2-alpha-dark-30),
+      0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6);
+    --v2-elevation-floating:
+      0px 8px 16px 0px var(--v2-alpha-dark-30), 0px 4px 8px 0px var(--v2-alpha-dark-30),
+      0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6);
+    --v2-elevation-overlay:
+      0px 16px 32px 0px var(--v2-alpha-dark-30), 0px 8px 16px 0px var(--v2-alpha-dark-30),
+      0px 0px 0px 0.5px var(--v2-alpha-light-16), 0px -0.5px 0px 0px var(--v2-alpha-light-6);
+    --v2-elevation-button-neutral:
+      0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-20),
+      0px -0.5px 0px 0px var(--v2-alpha-light-10);
+    --v2-elevation-button-contrast:
+      0px 1px 2px 0px var(--v2-alpha-dark-40), 0px 0px 0px 0.5px var(--v2-alpha-light-40),
+      inset 0px 0px 0px 0px var(--v2-alpha-light-0), inset 0px 0px 0px 0px var(--v2-alpha-light-0),
+      0px -0.5px 0px 0px var(--v2-alpha-light-30);
+    --v2-elevation-elements: 0px 0.5px 0.5px 0px var(--v2-alpha-dark-40);
+    --v2-elevation-switch-off:
+      inset 0px -0.5px 0px 0px var(--v2-alpha-light-10), inset 0px 0px 0px 0px var(--v2-alpha-light-0),
+      inset 0px 0px 0px 0.5px var(--v2-alpha-light-16);
+    --v2-elevation-switch-on:
+      inset 0px -0.5px 0px 0px var(--v2-alpha-light-10), inset 0px 0px 0px 0px var(--v2-alpha-light-0),
+      inset 0px 0px 0px 0.5px var(--v2-alpha-light-16);
+
+    /* ── Illustration ── */
+    --v2-illustration-illustration-layer-01: var(--v2-grey-900);
+    --v2-illustration-illustration-layer-02: var(--v2-grey-800);
+    --v2-illustration-illustration-layer-03: var(--v2-grey-700);
+
+    /* ── Diff / syntax ── */
+    --text-diff-add-base: #c4ffc0;
+    --text-diff-delete-base: #ec2f14;
+    --syntax-comment: #8f8f8f;
+    --syntax-keyword: #edb2f1;
+    --syntax-primitive: #8cb0ff;
+    --syntax-property: #fab283;
+    --syntax-type: #fcd53a;
+    --syntax-critical: #fab283;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+   * §3  Compat — base + v1 names, aliased onto §1/§2.
+   *
+   * Declared once in `:root`. Custom properties resolve lazily, so an alias
+   * written here picks up the §2 dark value automatically when `.dark` is on
+   * <html>. Never redeclare a `--v2-*` token in this section.
+   * ══════════════════════════════════════════════════════════════════ */
+  :root {
+    /* ── Typography ── */
+    --v2-font-family-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-family-sans: var(--v2-font-family-sans);
+    --font-family-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-sans: var(--font-family-sans);
+    --font-mono: var(--font-family-mono);
+
+    --font-size-x-small: 11px;
+    --font-size-small: 13px;
+    --font-size-base: 14px;
+    --font-size-large: 16px;
+    --fs-xs: var(--font-size-x-small);
+    --fs-small: var(--font-size-small);
+    --fs-base: var(--font-size-base);
+
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+
+    --line-height-normal: 130%;
+    --line-height-large: 150%;
+    --line-height-x-large: 180%;
+    --leading: 1.45;
+
+    --letter-spacing-normal: 0;
+    --letter-spacing-tight: -0.16px;
+
+    /* ── Radius ── */
+    --radius-xs: 2px;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 10px;
+    --radius: var(--radius-md);
+
+    /* ── Metrics ── */
+    --touch: 40px;
+    --list-divider-inset: 16px;
+    --sticky-accordion-top: 0px;
+    --sticky-accordion-offset: 0px;
+
+    /* ── Motion ── */
+    --tool-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --tool-motion-spring-ms: 560ms;
+    --tool-motion-odometer-ms: 420ms;
+    --tool-motion-mask: 18%;
+
+    /* ── Background ── */
+    --bg-base: var(--v2-background-bg-base);
+    --bg-strong: var(--v2-background-bg-layer-01);
+    --background-base: var(--v2-background-bg-base);
+    --background-stronger: var(--v2-background-bg-layer-01);
+
+    /* ── Surface ──
+     * v2 layers upward from the page: base → 01 → 02 → 03. Panels read as
+     * tinted layers over the page rather than white cards on grey. */
+    --surface: var(--v2-background-bg-layer-01);
+    --surface-base: var(--v2-background-bg-layer-01);
+    --surface-raised: var(--v2-background-bg-layer-02);
+    --surface-raised-base: var(--v2-background-bg-layer-02);
+    --surface-raised-stronger-non-alpha: var(--v2-background-bg-layer-03);
+    --input-base: var(--v2-background-bg-base);
+    --button-secondary-base: var(--v2-background-bg-button-neutral);
+    --button-secondary-hover: var(--v2-background-bg-layer-02);
+    /* Floating surfaces track v2 tooltip/menu/dialog: same-theme layer + elevation. */
+    --surface-float: var(--v2-background-bg-layer-01);
+    --surface-float-base: var(--v2-background-bg-layer-01);
+    --text-on-float: var(--v2-text-text-base);
+    --surface-critical-weak: var(--v2-state-bg-danger);
+
+    /* Interaction overlays — alpha, so they compose over any layer. */
+    --surface-base-hover: var(--v2-overlay-simple-overlay-hover);
+    --surface-base-active: var(--v2-overlay-simple-overlay-pressed);
+    --surface-raised-base-hover: var(--v2-overlay-simple-overlay-hover);
+    --surface-raised-base-active: var(--v2-overlay-simple-overlay-pressed);
+
+    /* ── Text ── */
+    --text: var(--v2-text-text-base);
+    --text-strong: var(--v2-text-text-base);
+    --text-base: var(--v2-text-text-muted);
+    --text-weak: var(--v2-text-text-muted);
+    --text-weaker: var(--v2-text-text-faint);
+    --text-invert-base: var(--v2-text-text-inverse);
+    --text-invert-strong: var(--v2-text-text-inverse);
+    --text-on-critical-base: var(--v2-state-fg-danger);
+
+    /* ── Icon ── */
+    --icon-base: var(--v2-icon-icon-base);
+    --icon-strong-base: var(--v2-icon-icon-base);
+    --icon-strong-hover: var(--v2-text-text-base);
+    --icon-strong-active: var(--v2-text-text-base);
+    --icon-weak-base: var(--v2-icon-icon-muted);
+    --icon-weaker: var(--v2-icon-icon-muted);
+    --icon-invert-base: var(--v2-icon-icon-inverse);
+    --icon-diff-add-base: var(--text-diff-add-base);
+    --icon-diff-delete-base: var(--text-diff-delete-base);
+
+    /* ── Border ── */
+    --border: var(--v2-border-border-base);
+    --border-base: var(--v2-border-border-base);
+    --border-weak-base: var(--v2-border-border-muted);
+    --border-strong: var(--v2-border-border-strong);
+    --border-strong-base: var(--v2-border-border-strong);
+    --border-critical-selected: var(--v2-state-border-danger);
+
+    /* ── Accent / status ── */
+    --interactive: var(--v2-text-text-accent);
+    --focus-ring: var(--v2-border-border-focus);
+    --success: var(--v2-state-fg-success);
+    --success-bg: var(--v2-state-bg-success);
+    --warning: var(--v2-state-fg-warning);
+    --warning-bg: var(--v2-state-bg-warning);
+    --critical: var(--v2-state-fg-danger);
+    --critical-bg: var(--v2-state-bg-danger);
+    --ok: var(--v2-state-fg-success);
+
+    /* ── Elevation ──
+     * v1 shadow names map onto the v2 elevation ladder so raised/floating/
+     * overlay depth is consistent across both ports. */
+    --shadow-xxs-border: 0 0 0 0.5px var(--v2-border-border-muted);
+    --shadow-xs-border: var(--v2-elevation-raised);
+    --shadow-xs-border-base: var(--v2-elevation-raised);
+    --shadow-md: var(--v2-elevation-floating);
+    --shadow-lg-border-base: var(--v2-elevation-overlay);
+
+    /* Focus: v2 uses an offset outline, not an inset ring. Kept as a shadow
+     * token for the v1 port; v2 components use `outline` directly. */
+    --shadow-focus: 0 0 0 2px var(--v2-background-bg-base), 0 0 0 4px var(--v2-border-border-focus);
+    --inline-input-shadow: var(--shadow-focus);
+
+    /* ── Dock shell ── */
+    --dock-shell-visual-shadow: var(--v2-elevation-raised);
+    --dock-shell-border-underlay-width: 0.5px;
+    --dock-shell-border-underlay-background: var(--v2-background-bg-base);
+
+    /* ── Kobalte compatibility ──
+     * Upstream v2 CSS reads these from Kobalte at runtime. This port uses native
+     * elements, so nothing sets them; static defaults keep the declarations valid
+     * instead of resolving to `unset`.
+     *   `--toasts-before` is the count of toasts stacked in front of a given
+     *   toast, driving its offset/scale — 0 means "front toast, untransformed".
+     * The Kobalte-driven collapsible height is handled in accordion-v2.css,
+     * which cannot use a static value. */
+    --kb-menu-content-transform-origin: center top;
+    --kb-tooltip-content-transform-origin: center top;
+    --toasts-before: 0;
+  }
+}

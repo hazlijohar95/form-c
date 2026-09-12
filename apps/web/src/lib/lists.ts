@@ -15,3 +15,8 @@ export function uid(): string {
   if (c?.randomUUID) return c.randomUUID();
   return Math.random().toString(36).slice(2, 9);
 }
+
+/** Full templated plural — never concatenate fragments around counts. */
+export function plural(n: number, one: string, other = `${one}s`): string {
+  return n === 1 ? one : other;
+}

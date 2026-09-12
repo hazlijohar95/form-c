@@ -1,0 +1,158 @@
+[data-component="select"] {
+  position: relative;
+  display: inline-flex;
+}
+
+[data-component="select"] [data-slot="select-select-trigger"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-block: 0;
+  padding-inline: 8px 4px;
+  box-shadow: none;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: var(--radius-sm, var(--radius));
+  color: var(--text-strong, var(--text));
+  font-family: var(--font-sans);
+  font-size: var(--font-size-small, var(--fs-small));
+  font-weight: 500;
+  min-height: var(--touch);
+  cursor: pointer;
+}
+
+[data-component="select"] [data-slot="select-select-trigger"]:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+[data-component="select"] [data-slot="select-select-trigger"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+[data-component="select"] [data-slot="select-select-trigger-value"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-component="select"] [data-slot="select-select-trigger-icon"] {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-weak);
+}
+
+[data-component="select"][data-trigger-style="settings"] [data-slot="select-select-trigger"] {
+  padding-block: 6px;
+  padding-inline: 12px 6px;
+  border-radius: 6px;
+  min-width: 160px;
+  height: 32px;
+  justify-content: flex-end;
+  gap: 12px;
+  background-color: transparent;
+}
+
+[data-component="select"][data-trigger-style="settings"] [data-slot="select-select-trigger-value"] {
+  font-size: var(--fs-base);
+  font-weight: 400;
+}
+
+[data-component="select"][data-trigger-style="settings"] [data-slot="select-select-trigger-icon"] {
+  width: 16px;
+  height: 20px;
+  background-color: var(--surface-raised-base, var(--surface-raised));
+  border-radius: 4px;
+}
+
+[data-component="select"][data-trigger-style="settings"] [data-slot="select-select-trigger"]:hover:not(:disabled) {
+  background-color: var(--input-base, var(--surface));
+  box-shadow: var(--shadow-xs-border-base, 0 0 0 1px var(--border));
+}
+
+[data-component="select-content"] {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 104px;
+  max-width: 23rem;
+  overflow: hidden;
+  border-radius: var(--radius-md, var(--radius));
+  background-color: var(--surface-raised-stronger-non-alpha, var(--surface-raised));
+  padding: 4px;
+  box-shadow: var(--shadow-xs-border, 0 0 0 1px var(--border));
+  z-index: 60;
+}
+
+[data-component="select-content"] [data-slot="select-select-content-list"] {
+  overflow-y: auto;
+  max-height: 12rem;
+  white-space: nowrap;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-component="select-content"] [data-slot="select-select-content-list"]:focus {
+  outline: none;
+}
+
+[data-component="select-content"] [data-slot="select-section"] {
+  padding: 4px 8px;
+  color: var(--text-weak);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  font-weight: 500;
+}
+
+[data-component="select-content"] [data-slot="select-select-item"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  gap: 12px;
+  border-radius: 4px;
+  cursor: default;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-small, var(--fs-small));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+  color: var(--text-strong, var(--text));
+  outline: none;
+  user-select: none;
+}
+
+[data-component="select-content"] [data-slot="select-select-item"]:hover,
+[data-component="select-content"] [data-slot="select-select-item"][data-highlighted] {
+  background: var(--surface-raised-base-hover, var(--bg-strong));
+}
+
+[data-component="select-content"] [data-slot="select-select-item"] [data-slot="select-select-item-indicator"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: auto;
+  width: 16px;
+  height: 16px;
+}
+
+[data-component="select-content"][data-trigger-style="settings"] {
+  min-width: 160px;
+  border-radius: 8px;
+  padding: 0;
+}
+
+[data-component="select-content"][data-trigger-style="settings"] [data-slot="select-select-content-list"] {
+  padding: 4px;
+}
+
+[data-component="select-content"][data-trigger-style="settings"] [data-slot="select-select-item"] {
+  font-size: var(--fs-base);
+  font-weight: 400;
+}

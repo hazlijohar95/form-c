@@ -1,0 +1,111 @@
+[data-component="dropdown-menu-content"],
+[data-component="dropdown-menu-sub-content"] {
+  min-width: 8rem;
+  overflow: hidden;
+  border-radius: var(--radius-md, var(--radius));
+  border: 1px solid var(--border-base, var(--border));
+  background-clip: padding-box;
+  background-color: var(--surface-raised-stronger-non-alpha, var(--surface-raised));
+  padding: 4px;
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.16));
+  z-index: 50;
+}
+
+[data-component="dropdown-menu-content"]:focus,
+[data-component="dropdown-menu-sub-content"]:focus,
+[data-component="dropdown-menu-content"]:focus-visible,
+[data-component="dropdown-menu-sub-content"]:focus-visible {
+  outline: none;
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item"],
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-radio-item"],
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-sub-trigger"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  text-align: start;
+  border-radius: var(--radius-sm, var(--radius));
+  cursor: default;
+  user-select: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-small, var(--fs-small));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+  color: var(--text-strong, var(--text));
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:hover,
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item"]:hover,
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"]:hover,
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-sub-trigger"]:hover {
+  background: var(--surface-raised-base-hover, var(--bg-strong));
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item"][data-disabled],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item"][data-disabled] {
+  color: var(--text-weak);
+  pointer-events: none;
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-radio-item"] {
+  padding-inline-end: 28px;
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item-indicator"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item-indicator"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item-label"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item-label"] {
+  flex: 1;
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-item-description"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-item-description"] {
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  color: var(--text-weak);
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-separator"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-separator"] {
+  height: 1px;
+  margin: 4px -4px;
+  background: var(--border-weak-base, var(--border));
+}
+
+[data-component="dropdown-menu-content"] [data-slot="dropdown-menu-group-label"],
+[data-component="dropdown-menu-sub-content"] [data-slot="dropdown-menu-group-label"] {
+  display: block;
+  padding: 4px 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-x-small, var(--fs-xs));
+  font-weight: 500;
+  line-height: var(--line-height-large, var(--leading));
+  letter-spacing: var(--letter-spacing-normal, normal);
+  color: var(--text-weak);
+}

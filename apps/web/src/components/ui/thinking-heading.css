@@ -1,0 +1,19 @@
+[data-component="thinking-heading"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  line-height: 20px;
+  min-height: 20px;
+  color: var(--text-weak);
+}
+
+[data-component="thinking-heading"] [data-slot="thinking-heading-detail"] {
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+  color: var(--text-weaker);
+  font-weight: 400;
+}

@@ -1,0 +1,11 @@
+# apps/web AGENTS — Form C Studio redesign v2 (opencode 100% catalog port)
+
+Structure:
+- `App.tsx` — shell only: tabbar + view switch (Home / Settings / Session).
+- `shell/*` — EngagementTabs, HomePage, SettingsPage, SessionView, SessionHeader, FilingTabs, LiveRail, tabs.ts. One export each.
+- `components/ui/*` — FULL opencode v1 port (~45): accordion, animated-number, app-icon, avatar, button, card, checkbox, collapsible, context-menu, dialog, diff-changes, dock-surface, dropdown-menu, favicon, file-icon, font, hover-card, icon, icon-button, image-preview, inline-input, keybind, list, logo, motion-spring, popover, progress, progress-circle, provider-icon, radio-group, resize-handle, scroll-view, select, spinner, sticky-accordion-header, switch, tabs, tag, text-field, text-reveal, text-shimmer, text-strikethrough, thinking-heading, tooltip, typewriter + local Toast/Field/Palette/primitives(StatusDot/Empty/Skeleton/serverStatus).
+- `components/ui/v2/*` — FULL opencode v2 port (~31): accordion-v2, avatar-v2, badge-v2, button-v2, checkbox-v2, dialog-v2, diff-changes-v2, divider-v2, field-v2, icon, icon-button-v2, inline-input-v2, keybind-v2, line-comment-v2, loader-v2, menu-v2, progress-circle-v2, project-avatar-v2, radio-v2, segmented-control-v2, select-v2, split-button-v2, switch-v2, tab-state-indicator, tabs-v2, text-input-v2, text-shimmer-v2, textarea-v2, toast-v2, tooltip-v2, wordmark-v2.
+- Consumers: per-file imports (opencode exports-map parity) or `ui/index.js` / `ui/v2/index.js` barrels. v1 `Tag` vs v2 `Tag`, v1 `Avatar/Switch` vs v2 same names live in separate barrels — never merge.
+- `styles/` — tokens/base/shell/filing.css under `@layer theme,base,components,utilities`. `tokens.css` holds base + `--v2-*` aliases. Component `.css` is co-located per file on `data-component/slot/variant` contracts. No hex in components.
+- Adaptations (documented, not 1:1): Solid→React, Kobalte→native elements, icon sprites→inline glyphs (34-icon subset in icon.tsx), i18n→English literals with label overrides, no `any`, early returns.
+- Verify: `npx tsc --noEmit` + `npm run test --silent` + `npm run build` from `apps/web`. Browser: `/` home, `/settings` prefs, `/engagement/:id/:tab` session on `:5231`.

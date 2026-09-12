@@ -1,0 +1,27 @@
+@layer components {
+  [data-component="tag"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    line-height: var(--leading);
+  }
+
+  [data-component="tag"][data-size="normal"] {
+    height: 18px;
+    padding: 0 6px;
+  }
+
+  [data-component="tag"][data-size="large"] {
+    height: 22px;
+    padding: 0 8px;
+    font-size: var(--fs-base);
+  }
+}

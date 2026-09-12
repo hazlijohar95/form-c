@@ -5,10 +5,10 @@ export type RmKind = "rm" | "signed" | "pct" | "int" | "year";
 
 const KIND_HINT: Record<RmKind, string> = {
   rm: "Use RM format 1,234.56",
-  signed: "Negative allowed — e.g. -12,000.50 debit",
-  pct: "0–100, e.g. 12.5",
-  int: "Whole number, e.g. 12",
-  year: "Four-digit year, e.g. 2024",
+  signed: "Enter an amount like -12,000.50 (negative allowed)",
+  pct: "Enter a number from 0 to 100, e.g. 12.5",
+  int: "Enter a whole number, e.g. 12",
+  year: "Enter a four-digit year, e.g. 2024",
 };
 
 /** Shared amount validator (Error at Seam): blank is untouched (valid),
@@ -24,14 +24,14 @@ export function validateAmount(kind: RmKind, v: string): string | undefined {
     case "pct": {
       if (!/^\d+(\.\d+)?$/.test(s)) return KIND_HINT.pct;
       const n = Number(s);
-      return n >= 0 && n <= 100 ? undefined : "Must be 0–100";
+      return n >= 0 && n <= 100 ? undefined : "Enter a number from 0 to 100";
     }
     case "int":
       return /^\d+$/.test(s) ? undefined : KIND_HINT.int;
     case "year": {
       if (!/^\d{4}$/.test(s)) return KIND_HINT.year;
       const n = Number(s);
-      return n >= 1900 && n <= 2100 ? undefined : "Year 1900–2100";
+      return n >= 1900 && n <= 2100 ? undefined : "Enter a year from 1900 to 2100";
     }
   }
 }
@@ -69,7 +69,7 @@ export function RmInput(props: {
       {(field) => {
         const err = field.state.meta.errors[0];
         return (
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="rm-wrap">
             <label className={props.compact ? "f sr-only" : "f"} htmlFor={id}>
               {label}
             </label>
@@ -88,7 +88,6 @@ export function RmInput(props: {
                 props.on(e.target.value);
               }}
               onBlur={field.handleBlur}
-              style={{ width: "100%" }}
             />
             {props.hint && !err && (
               <div className="field-hint" id={hintId}>

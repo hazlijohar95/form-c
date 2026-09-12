@@ -4,13 +4,14 @@ import { rmStrToSen } from "../lib/rm.js";
 import type { Engagement } from "../lib/types.js";
 import { deemed140B, useComputation } from "../lib/computation.js";
 import { MyTaxCoverage } from "./MyTaxCoverage.js";
+import { TableScroll } from "./ui/primitives.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
 function KRow(props: { label: string; cur: string; prior: string }): JSX.Element {
   return (
     <tr>
-      <td>{props.label}</td>
+      <th scope="row">{props.label}</th>
       <td className="rm">{props.cur}</td>
       <td className="rm hint">{props.prior || "—"}</td>
     </tr>
@@ -39,19 +40,19 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
           large unexplained swings attract queries. Print this page as the keying record.
         </p>
         <h4>Maklumat syarikat</h4>
-        <div className="tscroll">
+        <TableScroll label="Company keying table">
         <table className="w">
-          <thead><tr><th>Field</th><th style={{ textAlign: "right" }}>Key (YA{eng.ya})</th><th style={{ textAlign: "right" }}>Prior filed</th></tr></thead>
+          <thead><tr><th>Field</th><th className="num-h">Key (YA{eng.ya})</th><th className="num-h">Prior filed</th></tr></thead>
           <tbody>
             <KRow label="Company / Reg no" cur={`${eng.companyName} ${eng.regNo}`} prior="" />
             <KRow label="Basis period" cur={`${eng.fyeFrom} – ${eng.fyeTo}`} prior="" />
             <KRow label="SME rate" cur={result.smeQualifies && !eng.isIhc ? "15/17/24%" : "Flat 24%"} prior="" />
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <h4>Pengarah / Pemegang saham</h4>
-        <div className="tscroll">
+        <TableScroll label="Directors and shareholders keying table">
         <table className="w">
           <tbody>
             {eng.directors.map((d) => (
@@ -65,7 +66,7 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             )}
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <h4>Perisytiharan (Yes/No)</h4>
         {decls.map((d) => (
@@ -76,7 +77,7 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
         ))}
 
         <h4>Bahagian B — pendapatan</h4>
-        <div className="tscroll">
+        <TableScroll label="Income keying table">
         <table className="w">
           <tbody>
             <KRow label="Statutory business" cur={formatRM(result.statutoryBeforeIncentivesSen)} prior="" />
@@ -92,10 +93,10 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             <KRow label="BALANCE" cur={formatRM(result.taxPayableSen)} prior="" />
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <h4>Lampiran A1 — pelarasan</h4>
-        <div className="tscroll">
+        <TableScroll label="Adjustments keying table">
         <table className="w">
           <tbody>
             <KRow label="Net profit per accounts" cur={formatRM(rmStrToSen(eng.netProfitRM))} prior="" />
@@ -103,10 +104,10 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             <KRow label="Adjusted income" cur={formatRM(result.adjustedSen)} prior="" />
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <h4>Jadual 3 — CA</h4>
-        <div className="tscroll">
+        <TableScroll label="Capital allowances keying table">
         <table className="w">
           <tbody>
             <KRow label="CA deducted" cur={formatRM(result.totalCaSen)} prior={py.caRM ? `RM ${py.caRM}` : ""} />
@@ -114,10 +115,10 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             <KRow label="RE c/f" cur={formatRM(result.residualCfSen)} prior={py.reBfRM ? `RE b/f RM ${py.reBfRM}` : ""} />
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <h4>D1 — potongan khas</h4>
-        <div className="tscroll">
+        <TableScroll label="Special deductions keying table">
         <table className="w">
           <tbody>
             {eng.doubleDeductions.map((l) => (
@@ -128,7 +129,7 @@ export function EKeying(props: { eng: Engagement; patch: Patch }): JSX.Element {
             )}
           </tbody>
         </table>
-        </div>
+        </TableScroll>
 
         <div className="toolbar no-print">
           <button className="btn" onClick={() => window.print()}>Print keying record</button>

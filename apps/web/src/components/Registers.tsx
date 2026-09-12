@@ -23,7 +23,7 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
           emptyTitle="No directors"
           emptyHint="Add each director — Form C schedule needs name, share %, salary, loan."
           columns={[
-            { header: "Name", cell: (d, set) => (<input value={d.name} onChange={(e) => set({ name: e.target.value })} aria-label="Name" placeholder="Name" style={{ width: "100%" }} />) },
+            { header: "Name", cell: (d, set) => (<input value={d.name} onChange={(e) => set({ name: e.target.value })} aria-label="Name" />) },
             { header: "Share %", cell: (d, set) => (<RmInput label="Share %" compact kind="pct" value={d.sharePct} on={(v) => set({ sharePct: v })} placeholder="0–100" />) },
             { header: "Salary RM", cell: (d, set) => (<RmInput label="Salary (RM)" compact value={d.salaryRM} on={(v) => set({ salaryRM: v })} placeholder="0.00" />) },
             { header: "Loan RM", cell: (d, set) => (<RmInput label="Director loan (RM)" compact value={d.loanRM} on={(v) => set({ loanRM: v })} placeholder="0.00" />) },
@@ -43,7 +43,7 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
           emptyTitle="No shareholders"
           emptyHint="Add each shareholder with shares and %."
           columns={[
-            { header: "Name", cell: (s, set) => (<input value={s.name} onChange={(e) => set({ name: e.target.value })} aria-label="Name" placeholder="Name" style={{ width: "100%" }} />) },
+            { header: "Name", cell: (s, set) => (<input value={s.name} onChange={(e) => set({ name: e.target.value })} aria-label="Name" />) },
             { header: "Shares", cell: (s, set) => (<RmInput label="Shares held" compact kind="int" value={s.shares} on={(v) => set({ shares: v })} placeholder="e.g. 1000" />) },
             { header: "%", cell: (s, set) => (<RmInput label="Share %" compact kind="pct" value={s.pct} on={(v) => set({ pct: v })} placeholder="0–100" />) },
           ]}
@@ -61,8 +61,8 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
           return (
             <div key={a.id} className="assetbox">
               <div className="linerow">
-                <input value={a.name} onChange={(e) => patch({ relatedAccounts: updateById(eng.relatedAccounts, a.id, { name: e.target.value }) })} aria-label="e.g. Director — current account" placeholder="e.g. Director — current account" style={{ flex: 3 }} />
-                {debit && <span className="flag crit" style={{ margin: 0 }}>DEBIT — s.140B</span>}
+                <input value={a.name} onChange={(e) => patch({ relatedAccounts: updateById(eng.relatedAccounts, a.id, { name: e.target.value }) })} aria-label="e.g. Director — current account" placeholder="e.g. Director — current account" className="linerow-main" />
+                {debit && <span className="flag crit flag-inline">DEBIT — s.140B</span>}
                 <button type="button" className="btn btn-xs ghost danger" onClick={() => patch({ relatedAccounts: removeById(eng.relatedAccounts, a.id) })} aria-label={`Remove related account ${a.name || "(unnamed)"}`}><span aria-hidden="true">×</span></button>
               </div>
               <div className="mgrid">
@@ -85,7 +85,7 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
             </div>
           );
         })}
-        <button className="btn" onClick={() => patch({ relatedAccounts: [...eng.relatedAccounts, { id: uid(), name: "", balances: Array(12).fill("") }] })}>+ Related account</button>
+        <button className="btn add-action" onClick={() => patch({ relatedAccounts: [...eng.relatedAccounts, { id: uid(), name: "", balances: Array(12).fill("") }] })}>+ Related account</button>
       </div>
 
       <div className="card">
@@ -100,9 +100,9 @@ export function Registers(props: { eng: Engagement; patch: Patch }): JSX.Element
           emptyTitle="No CP204 bills"
           emptyHint="Add each instalment bill — ties to s.107C paid."
           columns={[
-            { header: "Bill no", cell: (b, set) => (<input value={b.billNo} onChange={(e) => set({ billNo: e.target.value })} aria-label="Bill no" placeholder="Bill no" style={{ width: "100%" }} />) },
+            { header: "Bill no", cell: (b, set) => (<input value={b.billNo} onChange={(e) => set({ billNo: e.target.value })} aria-label="Bill no" />) },
             { header: "RM", cell: (b, set) => (<RmInput label="Bill amount (RM)" compact value={b.amountRM} on={(v) => set({ amountRM: v })} placeholder="0.00" />) },
-            { header: "Paid", cell: (b, set) => (<input type="date" value={b.paidOn} onChange={(e) => set({ paidOn: e.target.value })} aria-label="Paid on YYYY-MM-DD" placeholder="YYYY-MM-DD" style={{ width: "100%" }} />) },
+            { header: "Paid", cell: (b, set) => (<input type="date" value={b.paidOn} onChange={(e) => set({ paidOn: e.target.value })} aria-label="Paid on YYYY-MM-DD" placeholder="YYYY-MM-DD" />) },
             { header: "In FY", cell: (b, set) => (<label className="check"><input type="checkbox" checked={b.inFY} onChange={(e) => set({ inFY: e.target.checked })} /><span>Yes</span></label>) },
           ]}
         />

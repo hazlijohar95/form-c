@@ -1,7 +1,7 @@
 import { MYTAX_STEPS } from "@formc/engine";
-import { useMyTaxCoverage } from "../lib/mytax.js";
+import { mytaxOf, useMyTaxCoverage } from "../lib/mytax.js";
 import type { Engagement } from "../lib/types.js";
-import { mytaxOf } from "../lib/mytax.js";
+import { TableScroll } from "./ui/primitives.js";
 
 type Patch = (p: Partial<Engagement>) => void;
 
@@ -14,7 +14,7 @@ function Text(props: {
   return (
     <label className="fld">
       <span className="fl">{props.label}</span>
-      <input value={props.value} placeholder={props.ph ?? ""} onChange={(e) => props.on(e.target.value)} />
+      <input value={props.value} placeholder={props.ph ?? ""} autoComplete="off" onChange={(e) => props.on(e.target.value)} />
     </label>
   );
 }
@@ -40,10 +40,16 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
 
   return (
     <div className="card">
-      <h3>MyTax mirror — 8 langkah e-C vs enjin</h3>
+      {/*
+       * Field names stay in Malay to match the MyTax portal exactly — that is
+       * what the preparer is keying against. Everything around them is English,
+       * matching the rest of the app, so only the labels code-switch.
+       */}
+      <h3>MyTax mirror — 8 e-C steps vs engine</h3>
       <p className="hint">
-        Kiri: apa portal minta (susunan sebenar). Kanan: status liputan dari engagement ini.
-        Draf boleh simpan; Hantar + tandatangan perlukan kelulusan manusia. Band {result.smeQualifies ? "15/17/24" : "24"} enjin.
+        Left: what the portal asks for, in its own order and field names. Right: coverage from
+        this engagement. Drafts can be saved; submitting and signing need human approval.
+        Engine band {result.smeQualifies ? "15/17/24" : "24"}%.
       </p>
       <div className="fld-grid">
         <div>
@@ -110,10 +116,10 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
           </label>
         </div>
       </div>
-      <h4>Liputan langkah</h4>
-      <div className="tscroll">
+      <h4>Step coverage</h4>
+      <TableScroll label="MyTax step coverage table">
       <table className="w">
-        <thead><tr><th>#</th><th>Portal</th><th>Status</th><th>Kekurangan</th></tr></thead>
+        <thead><tr><th>#</th><th>Portal</th><th>Status</th><th>Missing</th></tr></thead>
         <tbody>
           {steps.map((s) => (
             <tr key={s.id}>
@@ -125,8 +131,8 @@ export function MyTaxCoverage(props: { eng: Engagement; patch: Patch }): JSX.Ele
           ))}
         </tbody>
       </table>
-      </div>
-      <h4>Gate hantar</h4>
+      </TableScroll>
+      <h4>Submit gate</h4>
       <ul>
         {submitBlockers.map((b, i) => (<li key={i} className="hint">{b}</li>))}
       </ul>

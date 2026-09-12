@@ -1,0 +1,20 @@
+[data-component="typewriter"] .blinking-cursor {
+  animation: typewriter-blink 1s step-end infinite;
+}
+
+@keyframes typewriter-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="typewriter"] .blinking-cursor {
+    animation: none;
+  }
+}
