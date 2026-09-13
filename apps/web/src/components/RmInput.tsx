@@ -43,7 +43,8 @@ export function rmError(v: string): string | undefined {
 // TanStack Form validated input at the string→sen seam. Parent stays
 // source of truth — validation displays inline, change patches upward.
 // Accessible: label association (sr-only in compact table cells),
-// aria-invalid/describedby, role=alert error.
+// aria-invalid/describedby, polite status error (not assertive: validation
+// runs on every keystroke, and role=alert would interrupt typing).
 export function RmInput(props: {
   value: string;
   on: (v: string) => void;
@@ -95,7 +96,7 @@ export function RmInput(props: {
               </div>
             )}
             {err ? (
-              <div className="field-err" id={errId} role="alert">
+              <div className="field-err" id={errId} role="status">
                 {String(err)}
               </div>
             ) : null}

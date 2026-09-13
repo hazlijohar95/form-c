@@ -23,7 +23,16 @@ body {
 }
 .skip:focus { inset-block-start: 12px; }
 h1, h2, h3, h4 { scroll-margin-top: 16px; }
-.app { max-width: 1360px; margin: 0 auto; padding: 12px 16px 80px; }
+.app { max-width: 1360px; margin: 0 auto; padding: 12px 16px 16px; height: 100dvh; display: flex; flex-direction: column; min-height: 0; }
+.panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panel > .home, .panel > .settings { overflow-y: auto; min-height: 0; flex: 1; }
+.panel > .workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+html, body, #root { height: 100%; }
+body { overflow: hidden; }
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100dvh; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+}
 .app h1 { font-size: 17px; letter-spacing: -0.01em; margin: 0; overflow-wrap: break-word; min-width: 0; }
 main { min-width: 0; }
 label.f { display: block; font-size: var(--fs-small); color: var(--v2-text-text-muted); margin: 8px 0 4px; }
@@ -49,7 +58,7 @@ textarea { resize: vertical; min-block-size: 96px; }
 @media (min-width: 700px) {
   input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: var(--fs-base); }
 }
-input::placeholder, textarea::placeholder { color: var(--v2-text-text-faint); }
+input::placeholder, textarea::placeholder { color: var(--v2-text-text-muted); }
 input:focus-visible, select:focus-visible, textarea:focus-visible,
 button:focus-visible, a:focus-visible, .tscroll:focus-visible {
   outline: 2px solid var(--v2-border-border-focus);

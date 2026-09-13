@@ -5,6 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { TableScroll } from "./ui/primitives.js";
 
 export interface LineRow {
   id: string;
@@ -83,7 +84,7 @@ export function LineTable<T extends LineRow>(props: {
     );
   return (
     <div>
-      <div className="tscroll">
+      <TableScroll label={`${addLabel} lines`}>
         <table className="w">
           <thead>
             {table.getHeaderGroups().map((hg) => (
@@ -106,7 +107,7 @@ export function LineTable<T extends LineRow>(props: {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       <button type="button" className="btn add-action" onClick={onAdd}>
         {addLabel}
       </button>

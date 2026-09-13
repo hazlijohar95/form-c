@@ -30,7 +30,7 @@ export function HomePage(props: {
       <div className="home-side no-print">
         <section aria-labelledby="home-proj-h">
           <div className="home-proj-head">
-            <h3 id="home-proj-h">Projects</h3>
+            <h3 id="home-proj-h">All engagements</h3>
             <button type="button" className="iconbtn" title="New engagement" aria-label="New engagement" onClick={props.onCreate}>
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M1 4.5A1.5 1.5 0 0 1 2.5 3h3l1.5 2h4A1.5 1.5 0 0 1 12.5 6.5v3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
@@ -50,7 +50,9 @@ export function HomePage(props: {
                 >
                   <span className="n" aria-hidden="true">{e.formType}</span>
                   <span className="meta">
-                    <div className="name">{e.companyName || "(unnamed company)"}</div>
+                    {/* YA belongs here: without it two years of the same client
+                      * render as identical rows under "All engagements". */}
+                    <div className="name">{e.companyName || "(unnamed company)"} <span className="sub">· YA{e.ya}</span></div>
                   </span>
                 </button>
               </li>
@@ -58,7 +60,7 @@ export function HomePage(props: {
           </ul>
           {props.list.length === 0 && (
             <Empty
-              title="No projects yet"
+              title="No engagements yet"
               hint={<span>Create an engagement — or <button type="button" className="linkbtn" onClick={props.onDemo}>load the demo proof</button>.</span>}
               icon="▦"
             />
@@ -82,20 +84,29 @@ export function HomePage(props: {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={scopeName ? `Search sessions in ${scopeName}` : "Search engagements"}
+            placeholder={scopeName ? `Search engagements for ${scopeName}` : "Search engagements"}
             aria-label="Search engagements"
           />
         </label>
         <div className="home-head">
-          <h2>Recent sessions</h2>
+          <h2>Recent engagements</h2>
           <button type="button" className="btn-new" onClick={props.onCreate}>
-            <span aria-hidden="true">✎</span> New session
+            <span aria-hidden="true">✎</span> New engagement
           </button>
         </div>
         {recent.length === 0 ? (
           <Empty
             title={props.list.length === 0 ? "No engagements yet" : "No matches"}
-            hint={props.list.length === 0 ? "Create one, or load the demo proof to see a complete Report." : `Nothing matches “${q}”.`}
+            hint={
+              props.list.length === 0 ? (
+                "Create one, or load the demo proof to see a complete Report."
+              ) : (
+                <span>
+                  Nothing matches “{q}”.{" "}
+                  <button type="button" className="linkbtn" onClick={() => setQ("")}>Clear search</button>
+                </span>
+              )
+            }
             icon="＋"
           />
         ) : (

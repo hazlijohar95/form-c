@@ -14,7 +14,13 @@ export function SessionHeader(props: {
 }): JSX.Element {
   return (
     <div className="session-head no-print">
-      <h1 className="session-title">{props.title} <span className="hint">· {props.subtitle}</span></h1>
+      <div className="session-titlewrap">
+        <h1 className="session-title">{props.title}</h1>
+        <span className="session-sub">{props.subtitle}</span>
+        <span className="save-dot" title="All changes save automatically" aria-label="All changes save automatically">
+          <span className="save-pulse" aria-hidden="true" />Saved
+        </span>
+      </div>
       <div className="session-actions">
         <StatusDot useServer={props.useServer} error={props.serverError} />
         <button type="button" className="btn btn-xs ghost" onClick={props.onPalette} title="Command palette (Ctrl/⌘+K)" aria-label="Open command palette">
@@ -42,14 +48,19 @@ export function SessionMenu(props: {
   onPrint: () => void;
 }): JSX.Element {
   return (
-    <details className="menu">
-      <summary className="btn btn-xs ghost" aria-label="Session actions">···</summary>
-      <div className="menu-pop" role="menu">
-        <button type="button" role="menuitem" onClick={props.onSnapshot}>Snapshot run</button>
-        <button type="button" role="menuitem" onClick={props.onExport}>Copy MyTax JSON</button>
-        <button type="button" role="menuitem" onClick={props.onDuplicate}>Duplicate</button>
-        <button type="button" role="menuitem" onClick={props.onPrint}>Print</button>
-        <button type="button" role="menuitem" className="danger" onClick={props.onRemove}>Delete</button>
+    <details
+      className="menu"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") e.currentTarget.open = false;
+      }}
+    >
+      <summary className="btn btn-xs ghost" aria-label="Session actions"><span aria-hidden="true">···</span></summary>
+      <div className="menu-pop">
+        <button type="button" onClick={props.onSnapshot}>Snapshot</button>
+        <button type="button" onClick={props.onExport}>Copy MyTax JSON</button>
+        <button type="button" onClick={props.onDuplicate}>Duplicate</button>
+        <button type="button" onClick={props.onPrint}>Print</button>
+        <button type="button" className="danger" onClick={props.onRemove}>Delete</button>
       </div>
     </details>
   );

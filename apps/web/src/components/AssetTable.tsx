@@ -6,6 +6,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { RmInput } from "./RmInput.js";
+import { TableScroll } from "./ui/primitives.js";
 import { CATEGORIES } from "../lib/types.js";
 import { uid, removeById, updateById } from "../lib/lists.js";
 import type { AssetLine, Engagement } from "../lib/types.js";
@@ -125,7 +126,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch; onAssets?
 
   return (
     <div>
-      <div className="tscroll">
+      <TableScroll label="Asset schedule">
       <table className="w">
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -148,7 +149,7 @@ export function AssetTable(props: { assets: AssetLine[]; patch: Patch; onAssets?
           ))}
         </tbody>
       </table>
-      </div>
+      </TableScroll>
       {assets.map((a) => (
         <div key={a.id} className="assetbox">
           <div className="row3">

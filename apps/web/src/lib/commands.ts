@@ -53,7 +53,7 @@ export function buildCommands(o: {
     {
       id: "snapshot",
       group: "Filing",
-      title: "Snapshot computation run",
+      title: "Snapshot",
       hint: eng ? `CI ${formatRM(headsOf(eng).ciSen)}` : "",
       run: o.doSnapshot,
     },

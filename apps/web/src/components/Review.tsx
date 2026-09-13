@@ -207,7 +207,7 @@ export function Review(props: { eng: Engagement; patch: Patch }): JSX.Element {
   return (
     <div>
       {rmIssues.length > 0 && (
-        <div className="card" role="alert">
+        <div className="card" role="status">
           <h3>Input errors — {rmIssues.length} {plural(rmIssues.length, "amount")} treated as 0</h3>
           <p className="hint">
             These fields failed RM validation and are computed as zero. Fix the format

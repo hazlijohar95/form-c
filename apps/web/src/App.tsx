@@ -192,7 +192,13 @@ export default function App(): JSX.Element {
     setList((prev) => prev.filter((e) => e.id !== id));
     setActiveId(null);
     goHome();
-    deleteServer(id).catch(() => toast({ title: "Delete failed on server", err: true }));
+    deleteServer(id).catch(() =>
+      toast({
+        title: "Delete failed on server",
+        detail: "Removed here only. Push again from Settings → Data to retry.",
+        err: true,
+      })
+    );
   }
 
   async function migrate(): Promise<void> {
@@ -266,7 +272,9 @@ export default function App(): JSX.Element {
 
   return (
     <div className="app">
-      <a className="skip" href="#panel">Skip to computation panel</a>
+      {!settingsMode && pathname !== "/" && eng && (
+        <a className="skip" href="#panel">Skip to computation panel</a>
+      )}
       <EngagementTabs
         list={list}
         activeId={activeId}

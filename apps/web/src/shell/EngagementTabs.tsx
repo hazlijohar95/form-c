@@ -11,13 +11,12 @@ export function EngagementTabs(props: {
   onSettings: () => void;
 }): JSX.Element {
   return (
-    <div className="tabbar no-print" role="tablist" aria-label="Engagements">
+    <nav className="tabbar no-print" aria-label="Engagements">
       <button
         type="button"
-        role="tab"
-        aria-selected={!props.activeId && !props.settingsActive}
+        aria-current={!props.activeId && !props.settingsActive ? "page" : undefined}
         className="tabbar-tab icon"
-        title="Home — projects and recent sessions"
+        title="Home — all and recent engagements"
         onClick={props.onHome}
       >
         <span aria-hidden="true">▦</span>
@@ -27,11 +26,10 @@ export function EngagementTabs(props: {
         const label = `${e.companyName || "(unnamed)"} · YA${e.ya}`;
         const selected = e.id === props.activeId && !props.settingsActive;
         return (
-          <div key={e.id} role="presentation" className={`tabbar-tab wrap${selected ? " sel" : ""}`}>
+          <div key={e.id} className={`tabbar-tab wrap${selected ? " sel" : ""}`}>
             <button
               type="button"
-              role="tab"
-              aria-selected={selected}
+              aria-current={selected ? "page" : undefined}
               className="tabbar-main"
               title={label}
               onClick={() => props.onSelect(e.id)}
@@ -57,8 +55,7 @@ export function EngagementTabs(props: {
       <div className="tabbar-sp" />
       <button
         type="button"
-        role="tab"
-        aria-selected={props.settingsActive}
+        aria-current={props.settingsActive ? "page" : undefined}
         className="tabbar-tab icon"
         title="Settings"
         aria-label="Settings"
@@ -66,6 +63,6 @@ export function EngagementTabs(props: {
       >
         <span aria-hidden="true">⚙</span>
       </button>
-    </div>
+    </nav>
   );
 }

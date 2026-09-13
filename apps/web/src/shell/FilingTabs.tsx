@@ -1,5 +1,5 @@
 import type { Engagement } from "../lib/types.js";
-import { TABS, type Tab } from "./tabs.js";
+import { TABS, tabIndex, type Tab } from "./tabs.js";
 
 /*
  * One badge slot, one meaning: how many lines this step currently holds, so the
@@ -32,6 +32,13 @@ function badgeFor(id: Tab, eng: Engagement): { text: string; label: string } | n
   return null;
 }
 
+function stateFor(id: Tab, active: Tab): "done" | "active" | "todo" {
+  const a = tabIndex(active);
+  const i = tabIndex(id);
+  if (i === a) return "active";
+  return i < a ? "done" : "todo";
+}
+
 export function FilingTabs(props: {
   tab: Tab;
   eng: Engagement;
@@ -43,38 +50,64 @@ export function FilingTabs(props: {
       props.onSelect(id);
       window.setTimeout(() => document.getElementById(`tabbtn-${id}`)?.focus(), 0);
     }
-    if (e.key === "ArrowRight") { e.preventDefault(); jump(TABS[(idx + 1) % TABS.length].id); }
-    if (e.key === "ArrowLeft") { e.preventDefault(); jump(TABS[(idx - 1 + TABS.length) % TABS.length].id); }
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); jump(TABS[(idx + 1) % TABS.length].id); }
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); jump(TABS[(idx - 1 + TABS.length) % TABS.length].id); }
     if (e.key === "Home") { e.preventDefault(); jump(TABS[0].id); }
     if (e.key === "End") { e.preventDefault(); jump(TABS[TABS.length - 1].id); }
   }
 
+  const activeIdx = tabIndex(props.tab);
+  const pct = Math.round(((activeIdx + 1) / TABS.length) * 100);
+
   return (
-    <div className="tabs no-print" role="tablist" aria-label="Filing steps" onKeyDown={onKey}>
+    <nav className="stepnav no-print" aria-label="Filing progress" onKeyDown={onKey}>
+      <div className="stepnav-head">
+        <span className="stepnav-title">Filing flow</span>
+        <span className="stepnav-pct" aria-hidden="true">{activeIdx + 1} / {TABS.length}</span>
+      </div>
+      <div className="stepnav-bar" role="progressbar" aria-valuenow={activeIdx + 1} aria-valuemin={1} aria-valuemax={TABS.length} aria-label="Filing progress">
+        <div className="stepnav-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <div role="tablist" aria-label="Filing steps" className="stepnav-list">
       {TABS.map((t) => {
         const badge = badgeFor(t.id, props.eng);
+        const st = stateFor(t.id, props.tab);
+        const selected = props.tab === t.id;
         return (
           <button
             key={t.id}
             id={`tabbtn-${t.id}`}
             type="button"
             role="tab"
-            aria-selected={props.tab === t.id}
+            aria-selected={selected}
             aria-controls="filing-panel"
-            tabIndex={props.tab === t.id ? 0 : -1}
-            className="tab"
+            tabIndex={selected ? 0 : -1}
+            className="stepnav-item"
+            data-state={st}
             onClick={() => props.onSelect(t.id)}
           >
-            <span className="step-n" aria-hidden="true">{t.step}</span>{t.label}
-            {badge && (
+            <span className="stepnav-dot" aria-hidden="true">
+              {st === "done" ? "✓" : <span className="stepnav-n">{t.step}</span>}
+            </span>
+            <span className="stepnav-meta">
+              <span className="stepnav-label">{t.plain}<span className="stepnav-sub"> · {t.label}</span></span>
+              <span className="stepnav-blurb">{t.blurb}</span>
+            </span>
+            {badge ? (
               <>
                 <span className="badge" aria-hidden="true">{badge.text}</span>
                 <span className="sr-only">, {badge.label}</span>
               </>
+            ) : (
+              <span className="stepnav-kbd" aria-hidden="true">g{t.step}</span>
             )}
           </button>
         );
       })}
-    </div>
+      </div>
+      <p className="stepnav-foot hint">
+        <kbd className="chip">⌃↵</kbd> continue · <kbd className="chip">g 0–6</kbd> jump
+      </p>
+    </nav>
   );
 }

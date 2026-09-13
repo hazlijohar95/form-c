@@ -529,7 +529,7 @@ function ReportToolbar(props: {
           Print
         </button>
         <button type="button" className="btn btn-xs" onClick={() => props.onSnapshot(props.buildSnapshot())}>
-          Snapshot run
+          Snapshot
         </button>
         <button
           type="button"
@@ -548,9 +548,13 @@ function ReportToolbar(props: {
           Copy MyTax JSON
         </button>
       </div>
-      {props.doneCount < props.total && (
+      {props.doneCount < props.total ? (
         <p className="hint" id="export-hint">
           Export unlocks when all {props.total} checklist items are done — {remaining} remaining.
+        </p>
+      ) : (
+        <p className="hint" id="export-hint">
+          Checklist complete — ready to export.
         </p>
       )}
     </>

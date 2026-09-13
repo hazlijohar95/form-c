@@ -12,6 +12,8 @@
  *
  * Rules: components consume tier 2 or 3, never tier 1. No literal hex outside
  * tier 1 and the fixed avatar/diff ramps, which are theme-independent by design.
+ * Sole exception: print-to-paper literals in filing.css (`#fff/#000/#999`) —
+ * paper is white in both themes, so theme tokens would print dark-mode greys.
  *
  * Dark mode is `:root.dark` (set pre-paint in index.html) and also honours
  * `[data-color-scheme="dark"]` for opencode/Storybook parity. Both selectors are
@@ -75,10 +77,10 @@
 
     /* ── State ── */
     --v2-state-bg-success: var(--v2-green-100);
-    --v2-state-fg-success: var(--v2-green-800);
+    --v2-state-fg-success: var(--v2-green-900);
     --v2-state-border-success: var(--v2-green-300);
     --v2-state-bg-warning: var(--v2-yellow-100);
-    --v2-state-fg-warning: var(--v2-yellow-800);
+    --v2-state-fg-warning: var(--v2-yellow-1100);
     --v2-state-border-warning: var(--v2-yellow-300);
     --v2-state-bg-danger: var(--v2-red-100);
     --v2-state-fg-danger: var(--v2-red-800);

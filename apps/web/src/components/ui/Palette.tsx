@@ -69,7 +69,14 @@ export function Palette(props: { open: boolean; close: () => void; actions: Pale
       }
     }
     document.addEventListener("keydown", onKey, true);
-    return () => document.removeEventListener("keydown", onKey, true);
+    // The dialog renders inside .app, so inert the overlay's siblings —
+    // Tab is already trapped, this keeps SR browse-mode cursors out too.
+    const siblings = Array.from(document.querySelectorAll(".app > :not(.palette-overlay)"));
+    siblings.forEach((el) => el.setAttribute("inert", ""));
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      siblings.forEach((el) => el.removeAttribute("inert"));
+    };
   }, [props.open]);
   const items = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -146,7 +153,17 @@ export function Palette(props: { open: boolean; close: () => void; actions: Pale
             <div className="empty">
               <div className="t">No results found</div>
               <div className="d">
-                Nothing matches <strong>{q}</strong>. Try “engagement”, “report”, or “snapshot”.
+                Nothing matches <strong>{q}</strong>. Try “engagement”, “report”, or “snapshot”.{" "}
+                <button
+                  type="button"
+                  className="linkbtn"
+                  onClick={() => {
+                    setQ("");
+                    inputRef.current?.focus();
+                  }}
+                >
+                  Clear search
+                </button>
               </div>
             </div>
           )}
